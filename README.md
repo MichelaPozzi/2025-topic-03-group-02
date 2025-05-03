@@ -3,6 +3,9 @@
 
 Welcome to the **Proteome-wide Screen for RNA-dependent Proteins** project! This repository will serve as the central place for exploring, analyzing, and visualizing data related to RNA-protein interactions across the proteome.
 
+Fragen: 
+- Dürfen/Sollen wir die selben Kriterien zur bestimmung des Schifts (1 Fraction) verwenden, wie das original paper? wie wird das begründet?
+
 > ⚠️ _Note: This README is a starting template. Please update it as your project evolves._
 >
 For inspiration on writing a comprehensive and engaging README, check out the [Awesome README](https://github.com/matiassingers/awesome-readme?tab=readme-ov-file) repository.
