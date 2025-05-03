@@ -4,7 +4,8 @@
 Welcome to the **Proteome-wide Screen for RNA-dependent Proteins** project! This repository will serve as the central place for exploring, analyzing, and visualizing data related to RNA-protein interactions across the proteome.
 
 Fragen: 
-- Dürfen/Sollen wir die selben Kriterien zur bestimmung des Schifts (1 Fraction) verwenden, wie das original paper? wie wird das begründet?
+- Dürfen/Sollen wir die selben Kriterien zur bestimmung des Shifts (1 Fraction) verwenden, wie das original paper? wie wird das begründet?
+- Reicht die Analyse des Protein amounts between replicates als reproducibility check?
 
 > ⚠️ _Note: This README is a starting template. Please update it as your project evolves._
 >
