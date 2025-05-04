@@ -7,6 +7,8 @@ Fragen:
 - Dürfen/Sollen wir die selben Kriterien zur bestimmung des Shifts (1 Fraction) verwenden, wie das original paper? wie wird das begründet?
 - Reicht die Analyse des Protein amounts between replicates als reproducibility check?
 - immernoch die Frage, wie kommen wir von der Lyse ganzer Zellen zu Mass spectromity daten einzelner proteine? wie kann man die proteine genau idenyifizieren, sicher sein, dass in control und RNase probe wirklich genau das Protein betrachtet wird?
+- Wenn man sich R-Deep 3.0 anguckt, dann wurde doch alles was wir machen sollen schon getan oder? Sinn????
+    Können wir die Daten dann nutzen um zu schauen, ob wir alles richtig gemacht haben?
 
 > ⚠️ _Note: This README is a starting template. Please update it as your project evolves._
 >
