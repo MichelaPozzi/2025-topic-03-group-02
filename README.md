@@ -9,6 +9,7 @@ Fragen:
 - immernoch die Frage, wie kommen wir von der Lyse ganzer Zellen zu Mass spectromity daten einzelner proteine? wie kann man die proteine genau idenyifizieren, sicher sein, dass in control und RNase probe wirklich genau das Protein betrachtet wird?
 - Wenn man sich R-Deep 3.0 anguckt, dann wurde doch alles was wir machen sollen schon getan oder? Sinn????
     Können wir die Daten dann nutzen um zu schauen, ob wir alles richtig gemacht haben?
+- Wie genau kann man sich die Quantifikation vorstellen, "Amount of protein" = Fläche unter der Kurve, aber sind das nicht immer 100% ??
 
 > ⚠️ _Note: This README is a starting template. Please update it as your project evolves._
 >
