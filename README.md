@@ -4,12 +4,12 @@
 Welcome to the **Proteome-wide Screen for RNA-dependent Proteins** project! This repository will serve as the central place for exploring, analyzing, and visualizing data related to RNA-protein interactions across the proteome.
 
 Fragen: 
-- Dürfen/Sollen wir die selben Kriterien zur bestimmung des Shifts (1 Fraction) verwenden, wie das original paper? wie wird das begründet?
+- Dürfen/Sollen wir die selben Kriterien zur bestimmung des Shifts (1 Fraction) verwenden, wie das original paper? wie wird das begründet? wofür haben die dann die ganzen anderen shift characteristics berechnet?
 - Reicht die Analyse des Protein amounts between replicates als reproducibility check?
 - immernoch die Frage, wie kommen wir von der Lyse ganzer Zellen zu Mass spectromity daten einzelner proteine? wie kann man die proteine genau idenyifizieren, sicher sein, dass in control und RNase probe wirklich genau das Protein betrachtet wird?
 - Wenn man sich R-Deep 3.0 anguckt, dann wurde doch alles was wir machen sollen schon getan oder? Sinn????
     Können wir die Daten dann nutzen um zu schauen, ob wir alles richtig gemacht haben?
-- Wie genau kann man sich die Quantifikation vorstellen, "Amount of protein" = Fläche unter der Kurve, aber sind das nicht immer 100% ??
+- Wie genau kann man sich die Quantifikation vorstellen, "Amount of protein" = Fläche unter der Kurve, aber sind das nicht immer 100% ?? und wieso braucht man dieses Parameter, wofür?
 
 > ⚠️ _Note: This README is a starting template. Please update it as your project evolves._
 >
