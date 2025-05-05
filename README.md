@@ -10,7 +10,8 @@ Fragen:
 - Wenn man sich R-Deep 3.0 anguckt, dann wurde doch alles was wir machen sollen schon getan oder? Sinn????
     Können wir die Daten dann nutzen um zu schauen, ob wir alles richtig gemacht haben?
 - Wie genau kann man sich die Quantifikation vorstellen, "Amount of protein" = Fläche unter der Kurve, aber sind das nicht immer 100% ?? und wieso braucht man dieses Parameter, wofür?
-- test 
+- Wie können wir unsere Daten in das ReadMe einfügen? 
+
 > ⚠️ _Note: This README is a starting template. Please update it as your project evolves._
 >
 For inspiration on writing a comprehensive and engaging README, check out the [Awesome README](https://github.com/matiassingers/awesome-readme?tab=readme-ov-file) repository.
