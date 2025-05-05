@@ -15,6 +15,14 @@ Fragen:
 >
 For inspiration on writing a comprehensive and engaging README, check out the [Awesome README](https://github.com/matiassingers/awesome-readme?tab=readme-ov-file) repository.
 
+MS_Table <- read.table("C://Users//Sofi//Downloads//RDeeP_HeLa_Mitosis//RDeeP_HeLa_Mitosis.csv", header=TRUE, row.names=1, sep = ";")
+head(MS_Table)
+
+# For example: 
+# MS_Table <- read.table("~/Desktop/2024_Data_Analysis_Proteom/RDeeP_HeLa_NS.csv", header=TRUE, row.names=1, sep = ";")
+
+
+
 # 📚 Papers
 
 # Reviews
