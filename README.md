@@ -10,8 +10,8 @@ Fragen:
 - Wenn man sich R-Deep 3.0 anguckt, dann wurde doch alles was wir machen sollen schon getan oder? Sinn????
     Können wir die Daten dann nutzen um zu schauen, ob wir alles richtig gemacht haben?
 - Wie genau kann man sich die Quantifikation vorstellen, "Amount of protein" = Fläche unter der Kurve, aber sind das nicht immer 100% ?? und wieso braucht man dieses Parameter, wofür?
-- There is right and left shifts. A Protein which is RNA dependent could then in a very unlucky cenario first have a right shift, gaining interaction, then a left one equalling no shifts and therefore beeing undeteckted. 
-
+- There is right and left shifts. A Protein which is RNA dependent could then in a very unlucky cenario first have a right shift, gaining interaction, then a left one equalling no shifts and therefore beeing undetected. 
+- Could it be technically possible to use Rdeep seek to identify different types of RNA, or does it only identify interaction? 
 # Projektplan Draft
 Working in sprints and Correction loops (1.week cooding, 2.week adaptation to feedback)
 
