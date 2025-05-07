@@ -11,7 +11,7 @@ Fragen:
     Können wir die Daten dann nutzen um zu schauen, ob wir alles richtig gemacht haben?
 - Wie genau kann man sich die Quantifikation vorstellen, "Amount of protein" = Fläche unter der Kurve, aber sind das nicht immer 100% ?? und wieso braucht man dieses Parameter, wofür?
 
-# Projektplan Draft
+# Project plan Draft
 Working in sprints and Correction loops (1.week cooding, 2.week adaptation to feedback)
 
 **14.05.-06.06. 🧹 Data Cleanup & Reproducability Analysis**
