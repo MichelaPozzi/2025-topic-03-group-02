@@ -38,13 +38,19 @@ Deliverable: Normalized MS_Table ready to work with, Description of Dataset & St
 --> Determination of: number of peaks, position and hight of local maxima, quantification/amount of protein 
 
 --> Comparison between CTRL. vs RNase / Determination of Shift Characteristics: 
+
     - distance of shift
+    
     - direction of shift
+    
     - number of shifts
+    
     - difference between protein amounts
+    
     - difference between amplitudes
     
 --> Statistical Test for shift significance / RBP postive
+
     - Definition of criteria for a RBP postive shift and significance level
     - Application for each protein
     
