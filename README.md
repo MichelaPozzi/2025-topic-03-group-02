@@ -29,7 +29,8 @@ Working in sprints and Correction loops (1.week cooding, 2.week adaptation to fe
 --> Normalization of protein amount to 100 (determination of normalization factor and application)
 
 
-Deliverable: Normalized MS_Table ready to work with, Description of Dataset & Statement regarding reproducibility
+_**Deliverable**: Normalized MS_Table ready to work with, Description of Dataset & Statement regarding reproducibility_
+
 
 **6.06.-20.06. 🧐 Data Analysis** full focus (no exams)
 
@@ -40,24 +41,19 @@ Deliverable: Normalized MS_Table ready to work with, Description of Dataset & St
 --> Comparison between CTRL. vs RNase / Determination of Shift Characteristics: 
 
     - distance of shift
-    
     - direction of shift
-    
     - number of shifts
-    
     - difference between protein amounts
-    
     - difference between amplitudes
-    
 --> Statistical Test for shift significance / RBP postive
 
     - Definition of criteria for a RBP postive shift and significance level
     - Application for each protein
-    
 -->Validation of the test using a listed postive RBP and a listed negative RBP as control
 
 
-Deliverable: Shift characteristics for each protein, classification of each protein as RBP or RNA-independent
+_**Deliverable**: Shift characteristics for each protein, classification of each protein as RBP or RNA-independent_
+
 
 _Optional stuff generally_ 
 
@@ -66,10 +62,12 @@ _Optional stuff generally_
 --> Use quantification to further categorize the RBPS as dependent, partly dependent and independent 
 
 (but I think since we have a Mitosis sataset, we should focus on questions regarding mitosis)
+
     
 _Optional stuff mitosis related_ (but wee need to do a clustering and linear regression analysis)
 
 --> Comparison with data of nonsynchronizied celles (has already been done)
+
     - run through the same pipeline and compare RBP positiv proteins (similaritys and new RBPs)
     - define RBPs, that are only active in Mitosis
     
