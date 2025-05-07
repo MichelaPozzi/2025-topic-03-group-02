@@ -38,7 +38,6 @@ Deliverable: Normalized MS_Table ready to work with, Description of Dataset & St
 --> Determination of: number of peaks, position and hight of local maxima, quantification/amount of protein 
 
 --> Comparison between CTRL. vs RNase / Determination of Shift Characteristics: 
-
     - distance of shift
     - direction of shift
     - number of shifts
@@ -46,7 +45,6 @@ Deliverable: Normalized MS_Table ready to work with, Description of Dataset & St
     - difference between amplitudes
     
 --> Statistical Test for shift significance / RBP postive
-
     - Definition of criteria for a RBP postive shift and significance level
     - Application for each protein
     
@@ -66,7 +64,6 @@ _Optional stuff generally_
 _Optional stuff mitosis related_ (but wee need to do a clustering and linear regression analysis)
 
 --> Comparison with data of nonsynchronizied celles (has already been done)
-
     - run through the same pipeline and compare RBP positiv proteins (similaritys and new RBPs)
     - define RBPs, that are only active in Mitosis
     
