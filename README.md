@@ -6,33 +6,34 @@ Welcome to the **Proteome-wide Screen for RNA-dependent Proteins** project! This
 Fragen: 
 - Dürfen/Sollen wir die selben Kriterien zur bestimmung des Shifts (1 Fraction) verwenden, wie das original paper? wie wird das begründet? wofür haben die dann die ganzen anderen shift characteristics berechnet?
 - Reicht die Analyse des Protein amounts between replicates als reproducibility check?
-- immernoch die Frage, wie kommen wir von der Lyse ganzer Zellen zu Mass spectromity daten einzelner proteine? wie kann man die proteine genau idenyifizieren, sicher sein, dass in control und RNase probe wirklich genau das Protein betrachtet wird?
-- Wenn man sich R-Deep 3.0 anguckt, dann wurde doch alles was wir machen sollen schon getan oder? Sinn????
+- immernoch die Frage, wie kommen wir von der Lyse ganzer Zellen zu Mass spectromity daten einzelner proteine? wie kann man die proteine genau identifizieren, sicher sein, dass in control und RNase probe wirklich genau das Protein betrachtet wird?
+- Wenn man sich R-Deep 3.0 anguckt, dann wurde doch alles was wir machen sollen schon getan oder? 
     Können wir die Daten dann nutzen um zu schauen, ob wir alles richtig gemacht haben?
-- Wie genau kann man sich die Quantifikation vorstellen, "Amount of protein" = Fläche unter der Kurve, aber sind das nicht immer 100% ?? und wieso braucht man dieses Parameter, wofür?
-- There is right and left shifts. A Protein which is RNA dependent could then in a very unlucky cenario first have a right shift, gaining interaction, then a left one equalling no shifts and therefore beeing undetected. 
-- Could it be technically possible to use Rdeep seek to identify different types of RNA, or does it only identify interaction? 
+- Wie genau kann man sich die Quantifikation vorstellen, "Amount of protein" = Fläche unter der Kurve, aber sind das nicht immer 100% ? und wieso braucht man dieses Parameter, wofür?
+- There is right and left shifts. A Protein which is RNA dependent could then in a very unlucky scenario first have a right shift, gaining interaction, then a left one equalling no shifts and therefore beeing undetected. 
+- Where could we include a linear regression analysis? --> Idea in ReadMe under "Projektplan Draft" in "optional stuff mitosis related", not sure if realizable 
+
 # Projektplan Draft
 Working in sprints and Correction loops (1.week cooding, 2.week adaptation to feedback)
 
-**14.05.-06.06. 🧹 Data Cleanup & Reproducability Analysis**
+**14.05.-03.06. 🧹 Data Cleanup & Reproducability Analysis**
 
 --> Description of the Dataset (Dimensions, etc... partly done for Proposal)
 
---> Restructuration of coloums e.g. per freactions or CTRL. vs RNase (maybe subtabels and factors)
+--> Restructuration of coloums e.g. per freactions or CTRL. vs RNase (maybe subtabels and factors) --> gemeinsam besprechen, Verantwortliche: Lina
 
---> Handeling of missing values (if present)
+--> Handeling of missing values (if present) --> Verantwortlicher: Cihan
 
---> Reproducibility of the experiement:comparison of protein amounts/ data between triplicates (of a randomly choosen franction) for all proteins 
+--> Reproducibility of the experiement:comparison of protein amounts/ data between triplicates (of a randomly choosen franction) for all proteins --> Verantwortliche: Sofia
 
---> Normalisation of the triplicates (compute means --> one value per protein, fraction and CTRL/RNase)
+--> Normalisation of the triplicates (compute means --> one value per protein, fraction and CTRL/RNase) --> Verantwortliche: Lina
 
---> Normalization of protein amount to 100 (determination of normalization factor and application)
+--> Normalization of protein amount to 100 (determination of normalization factor and application) --> Verantwortlicher: Cihan
 
 
 Deliverable: Normalized MS_Table ready to work with, Description of Dataset & Statement regarding reproducibility
 
-**6.06.-20.06. 🧐 Data Analysis** full focus (no exams)
+**3.06.-24.06. 🧐 Data Analysis** full focus (no exams)
 
 --> Gaussian fitting 
 
@@ -56,6 +57,7 @@ Deliverable: Shift characteristics for each protein, classification of each prot
 
 _Optional stuff generally_ 
 
+If favorit Idea is not possible: 
 --> Comparison of identificated RBPs with already listed RBPs
 
 --> Use quantification to further categorize the RBPS as dependent, partly dependent and independent 
@@ -64,24 +66,31 @@ _Optional stuff generally_
     
 _Optional stuff mitosis related_ (but wee need to do a clustering and linear regression analysis)
 
+Favorit idea: 
 --> Comparison with data of nonsynchronizied celles (has already been done)
     - run through the same pipeline and compare RBP positiv proteins (similaritys and new RBPs)
-    - define RBPs, that are only active in Mitosis
+    - 1) define RBPs, that are only active in Mitosis
     
---> Clustering of mitosis relvant RBPs regarding Shift traits (has not been done, as far as I know; only for whole all proteins in nonsynchronizised cells)
+--> 1.1) Clustering and eventually PCA of mitosis relvant RBPs regarding Shift traits (has not been done, as far as I know; only for whole all proteins in nonsynchronizised cells)
 
     - find similar working RBPs or even RBP complexes 
     
+--> 1.2) Idea for linear regression analysis: plot Molecular weight and peak maximums against each other + LRA
+
+    - Predecting Molecular Weight of RBP in Mitosis by peak maximum 
+*******************************************************************************************
+In case we have time, not in project proposal before we promise something we cannot deliver:
 --> Phosphorylation check of mitosis relvant RBPs
 
     - integrate protein data with databases like "phosphositet" oder "olsen et.al"
+*******************************************************************************************
     
 --> Describe a certain protein/set of proteins more deeply (relevant for mitosis) --> story telling
 
 _--> Regression analysis, where how, for what????_
 
 
-**20.06.-7.07. 🎯 Preparation of Report and Presentation** 
+**24.06.-7.07. 🎯 Preparation of Report and Presentation** 
 
 --> Graphical depiction of certain findings (specific proteins,clusterings, etc.) make it pretty :)
 
@@ -92,8 +101,7 @@ _--> Regression analysis, where how, for what????_
 --> Design Poster
 
 
-Test
-Test 2 
+ 
 
 > ⚠️ _Note: This README is a starting template. Please update it as your project evolves._
 >
