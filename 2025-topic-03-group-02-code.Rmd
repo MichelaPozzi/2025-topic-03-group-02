@@ -8,22 +8,25 @@ date: "2025-05-16"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+##Loading MS-Data
+```{r}
+MS_Table <- read.table("~/Desktop/BioInfoprojekt/2025-topic-03-group-02/RDeeP_HeLa_Mitosis.csv",header=TRUE, row.names =1 , sep = ";")
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+# Data Cleanup
+## Despription of the Data
+```{r}
+nrow(MS_Table) # Number of Proteins
+ncol(MS_Table) # Number of varibale
+unique(sapply(MS_Table, class)) # classification of variables
+any(is.na(MS_Table)) # missing values
+min(MS_Table) # minimum intensity
+max(MS_Table) # maximum intensity
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Restructuration of coloums 
+
+
+## Reproducibility Analysis
+
+
