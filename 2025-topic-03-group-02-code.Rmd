@@ -16,17 +16,26 @@ MS_Table <- read.table("~/Desktop/BioInfoprojekt/2025-topic-03-group-02/RDeeP_He
 # Data Cleanup
 ## Despription of the Data
 ```{r}
-nrow(MS_Table) # Number of Proteins
-ncol(MS_Table) # Number of varibale
+n_rows = nrow(MS_Table) 
+n_rows # Number of Proteins
+n_cols = ncol(MS_Table) 
+n_cols # Number of varibale
 unique(sapply(MS_Table, class)) # classification of variables
 any(is.na(MS_Table)) # missing values
 min(MS_Table) # minimum intensity
 max(MS_Table) # maximum intensity
 ```
 
-## Restructuration of coloums 
+## Restructuration of the data
+Create a dataframe with factors that make it possible to access specific data from MS_Table
+```{r}
+treatment <- factor(rep(c("Ctrl", "RNAse"), each = 3, length.out = 150))
+replicate <- factor(rep(c("Crtl_Rep1", "Crtl_Rep2", "Crtl_Rep3", "RNAse_Rep1","RNAse_Rep2", "RNAse_Rep3"),25))
+fraction <- factor(rep(paste0("Fraction_", 1:25), each = 6))
 
-
+data <- data.frame(rownames = colnames(MS_Table),treatment = treatment, replicate = replicate, fraction = fraction)
+data
+```
 ## Reproducibility Analysis
 
 
