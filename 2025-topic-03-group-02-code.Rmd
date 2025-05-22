@@ -30,12 +30,49 @@ max(MS_Table) # maximum intensity
 Create a dataframe with factors that make it possible to access specific data from MS_Table
 ```{r}
 treatment <- factor(rep(c("Ctrl", "RNAse"), each = 3, length.out = 150))
-replicate <- factor(rep(c("Crtl_Rep1", "Crtl_Rep2", "Crtl_Rep3", "RNAse_Rep1","RNAse_Rep2", "RNAse_Rep3"),25))
+replicate <- factor(rep(c("Ctrl_Rep1", "Ctrl_Rep2", "Ctrl_Rep3", "RNAse_Rep1","RNAse_Rep2", "RNAse_Rep3"),25))
 fraction <- factor(rep(paste0("Fraction_", 1:25), each = 6))
 
 data <- data.frame(rownames = colnames(MS_Table),treatment = treatment, replicate = replicate, fraction = fraction)
 data
 ```
+Create a new dataframe with average values of the replicates 
+
+```{r}
+average.list <- list() #create list
+
+# for loop, going through all fractions: 
+# selecting Ctrl columns for specific fraction
+# computing average of these columns 
+# adding a new vector to list e.g."Ctrl_Fraction_1" and assigning average values 
+
+for (f in levels(fraction)) {
+  
+  cols.Ctrl <- which(fraction == f & treatment == "Ctrl") 
+  average.Ctrl <- rowMeans(MS_Table[,cols.Ctrl]) 
+  average.list[[paste0("Ctrl_",f)]] <- average.Ctrl 
+  
+  cols.RNAse <- which(fraction == f & treatment == "RNAse")
+  average.RNAse <- rowMeans(MS_Table[,cols.RNAse])
+  average.list[[paste0("RNAse_",f)]] <- average.RNAse
+}
+
+MS_Table_Averages <- as.data.frame(average.list) #convert list to dataframe
+rownames(MS_Table_Averages) <- rownames(MS_Table) #assign Protein IDs to average values
+
+#Define new order of columns ("levels" works in alphabetic order, not useful for us)
+fractions <- paste0("Fraction_", 1:25)
+
+ordered_names <- as.vector(rbind(
+  paste0("Ctrl_", fractions),
+  paste0("RNAse_", fractions)
+))
+
+MS_Table_Averages <- MS_Table_Averages[, ordered_names]
+head(MS_Table_Averages)
+```
+
+
 ## Reproducibility Analysis
 
 
