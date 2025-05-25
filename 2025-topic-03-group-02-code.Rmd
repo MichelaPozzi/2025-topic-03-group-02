@@ -24,6 +24,7 @@ unique(sapply(MS_Table, class)) # classification of variables
 any(is.na(MS_Table)) # missing values
 min(MS_Table) # minimum intensity
 max(MS_Table) # maximum intensity
+head(MS_Table)
 ```
 
 ## Restructuration of the data
@@ -90,5 +91,39 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 
 
 ## Reproducibility Analysis
+```{r}
+# Example: Data is already loaded in df
+# Row names are protein names
+# Columns are named like: "F1_R1", "F1_R2", ..., "F25_R3"
+# Choose your protein of interest
+protein_name <- "1433B_HUMAN"
 
+# Subset just the row of interest
+protein_row <- data[protein_name, ]
+
+# Initialize vector to store SDs
+sd_values <- numeric(25)
+
+# Get the three replicate values for this fraction from long-format data
+for (i in 1:25) {
+  # Filter the data for the specific protein and this fraction
+  subset_df <- df[df$fraction == i & rownames(df) == protein_name, ]
+  
+  # Further filter for the 3 replicates: Ctrl_Rep1, Ctrl_Rep2, Ctrl_Rep3
+  reps <- paste0("Ctrl_Rep", 1:3)
+  values <- subset_df[subset_df$replicate %in% reps, "rownames"]  # Replace 'value_column' with your actual measurement column name
+  
+  # Calculate standard deviation
+  sd_values[i] <- sd(values)
+}
+# Create a result table
+result_table <- data.frame(
+  Fraction = paste0("F", 1:25),
+  SD = sd_values
+)
+
+# Print or return the result
+print(result_table)
+
+```
 
