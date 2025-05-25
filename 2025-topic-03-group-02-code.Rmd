@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ##Loading MS-Data
 ```{r}
-MS_Table <- read.table("~/Desktop/BioInfoprojekt/2025-topic-03-group-02/RDeeP_HeLa_Mitosis.csv",header=TRUE, row.names =1 , sep = ";")
+MS_Table <- read.table("RDeeP_HeLa_Mitosis.csv", header = TRUE, row.names = 1, sep = ";")
 ```
 
 # Data Cleanup
@@ -36,8 +36,8 @@ fraction <- factor(rep(paste0("Fraction_", 1:25), each = 6))
 data <- data.frame(rownames = colnames(MS_Table),treatment = treatment, replicate = replicate, fraction = fraction)
 data
 ```
+## Normalization of triplicates 
 Create a new dataframe with average values of the replicates 
-
 ```{r}
 average.list <- list() #create list
 
@@ -70,6 +70,22 @@ ordered_names <- as.vector(rbind(
 
 MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 head(MS_Table_Averages)
+```
+## Normalization to 100 
+Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
+```{r}
+# Split up Control and RNAse values 
+ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages))
+rnase_cols <- grep("^RNAse_", colnames(MS_Table_Averages))
+# Normalization of each group to 100 
+ctrl_norm <- MS_Table_Averages[, ctrl_cols] / rowSums(MS_Table_Averages[, ctrl_cols]) * 100
+rnase_norm <- MS_Table_Averages[, rnase_cols] / rowSums(MS_Table_Averages[, rnase_cols]) * 100
+# Combine in one table 
+MS_Table_Norm <- cbind(ctrl_norm, rnase_norm)
+MS_Table_Norm <- MS_Table_Norm[, colnames(MS_Table_Averages)]
+head(round(MS_Table_Norm, 2))
+# Verify the calculation with one example; the row sum should be ~200
+rowSums(MS_Table_Norm["1433B_HUMAN", ]) 
 ```
 
 
