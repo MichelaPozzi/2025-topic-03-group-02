@@ -120,6 +120,7 @@ data
 #protein_row <- data[protein_name, ]
 
 sd_values <- numeric(25)
+mean_values <- numeric(25)
 
 for (i in 1:25) {
   # Define replicate labels
@@ -131,15 +132,27 @@ for (i in 1:25) {
   # Extract abundance values
   values <- subset_data$abundance
   
-  # Compute standard deviation
+  # Compute standard deviation + compute mean
   sd_values[i] <- sd(values)
+  
+  mean_values[i] <- mean(values)
 }
 
-# Create result table
-result_table <- data.frame(
+# Create result table 
+result_table1 <- data.frame(
   Fraction = paste0("Fraction_", 1:25),
   SD = sd_values
 )
-result_table
+result_table1
+
+result_table2 <- data.frame(
+  Fraction = paste0("Fraction_", 1:25),
+  MEAN = mean_values
+)
+result_table2
+
+
+
+
 ```
 
