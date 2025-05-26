@@ -134,20 +134,45 @@ for (i in 1:25) {
 }
 
 # Create result table 
-result_table1 <- data.frame(
+result_tablesd <- data.frame(
   Fraction = paste0("Fraction_", 1:25),
   SD = sd_values
 )
-result_table1
+result_tablesd
 
-result_table2 <- data.frame(
+result_tablemean <- data.frame(
   Fraction = paste0("Fraction_", 1:25),
   MEAN = mean_values
 )
-result_table2
+result_tablemean
 
 
 
 
 ```
+
+```{r}
+# code for a barplot
+
+# Combine by 'fraction' column
+result_table <- merge(result_tablesd, result_tablemean, by = "Fraction")
+
+# Optional: rename for clarity
+colnames(result_table) <- c("Fraction", "Mean", "SD")
+
+# Sort fractions numerically
+result_table$Fraction_num <- as.numeric(gsub("Fraction_", "", result_table$Fraction))
+result_table <- result_table[order(result_table$Fraction_num), ]
+
+# Plot bars and store bar positions
+bar_positions <- barplot(result_table$Mean,
+                         names.arg = result_table$Fraction,
+                         las = 2,
+                         col = "lightblue",
+                         ylim = c(0, max(result_table$Mean + result_table$SD, na.rm = TRUE)),
+                         main = "Mean Abundance per Fraction",
+                         ylab = "Mean Abundance")
+
+```
+
 
