@@ -50,7 +50,7 @@ for (f in levels(fraction)) {
   
   cols.Ctrl <- which(fraction == f & treatment == "Ctrl") 
   average.Ctrl <- rowMeans(MS_Table[,cols.Ctrl]) 
-  average.list[[paste0("Ctrl_",f)]] <- average.Ctrl 
+  average.list[[paste0("Ctrl_",f)]] <- average.Ctrl # paste0 funktion checken
   
   cols.RNAse <- which(fraction == f & treatment == "RNAse")
   average.RNAse <- rowMeans(MS_Table[,cols.RNAse])
@@ -75,7 +75,7 @@ head(MS_Table_Averages)
 Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
 ```{r}
 # Split up Control and RNAse values 
-ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages))
+ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages)) # grep function genauer schauen 
 rnase_cols <- grep("^RNAse_", colnames(MS_Table_Averages))
 # Normalization of each group to 100 
 ctrl_norm <- MS_Table_Averages[, ctrl_cols] / rowSums(MS_Table_Averages[, ctrl_cols]) * 100
@@ -84,11 +84,11 @@ rnase_norm <- MS_Table_Averages[, rnase_cols] / rowSums(MS_Table_Averages[, rnas
 MS_Table_Norm <- cbind(ctrl_norm, rnase_norm)
 MS_Table_Norm <- MS_Table_Norm[, colnames(MS_Table_Averages)]
 head(round(MS_Table_Norm, 2))
-# Verify the calculation with one example; the row sum should be ~200
+# Verify the calculation with one example; the row sum should be ~200 (Ctrl 100% + RNAse 100%)
 rowSums(MS_Table_Norm["1433B_HUMAN", ]) 
 ```
-Questions: wir sollten den DAta frame möglcihst nicht verändern!!! ... wenn man neuen Data frame will, dann neuer name
 
+######## BackUP
 ## Reproducibility Analysis
 ```{r}
 # Choose your protein of interest
@@ -103,9 +103,6 @@ data$abundance <- abundance_values
 data 
 ```
 
-
-Questions: Hier wurde jetzt nur. RNAse-Samples betrachtet oder? 
-Wäre es nicht sinnvoller, das für viele Proteine für nur eine Fraction (Ctrl ud RNAse replicates) zu machen? Ein Protein hat ja nicht so viel Aussagekraft. Und wir wollen ja am Ende eine Aussage über die Reproducibility treffen, das heist wir brauchen eine Art statistischen Test... der uns am ende sagt mit welchem Sigma unsere Aussage "Das Experiement ist wiederholbar" zutrifft. Ich denke, dass geht nur wenn wir dass für viele Proteine machen und eine Grenze festlegen, was die sd-values angeht (mit Hilfe von ChatGPT)
 
 
 ```{r}
