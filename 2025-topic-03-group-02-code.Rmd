@@ -24,7 +24,6 @@ unique(sapply(MS_Table, class)) # classification of variables
 any(is.na(MS_Table)) # missing values
 min(MS_Table) # minimum intensity
 max(MS_Table) # maximum intensity
-head(MS_Table)
 ```
 
 ## Restructuration of the data
