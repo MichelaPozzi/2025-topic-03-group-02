@@ -35,9 +35,9 @@ Deliverable: Normalized MS_Table ready to work with, Description of Dataset & St
 
 **3.06.-24.06. 🧐 Data Analysis** full focus (no exams)
 
---> Gaussian fitting 
+--> Gaussian fitting --> Lina
 
---> Determination of: number of peaks, position and hight of local maxima, quantification/amount of protein 
+--> Determination of: number of peaks, position and hight of local maxima, quantification/amount of protein --> von der Gaußkurve --> erstmal Cihan (in neuem Data Frame machen, für jedes ctrl und rnase)
 
 --> Comparison between CTRL. vs RNase / Determination of Shift Characteristics: 
     - distance of shift

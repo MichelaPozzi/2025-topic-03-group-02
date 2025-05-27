@@ -73,6 +73,7 @@ head(MS_Table_Averages)
 ```
 ## Normalization to 100 
 Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
+--> Note: QQ Plots für Normalverteilung 
 ```{r}
 # Split up Control and RNAse values 
 ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages)) # grep function genauer schauen 
@@ -89,6 +90,17 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 ```
 
 ######## BackUP
+Idee Correlation: 
+- mit allen 3 Reps und Proteinenanzahl die wir signifikant empfinden (langsam rantasten, wann sieht man keinen Unterschied mehr) --> Sofia macht R-Werte etc  
+- schöne Heatmap :)))) --> Cihan macht Korrelationsmatrix und Heatmap 
+- zwar schwieriger wahrscheinlicher, aber cooler 
+
+Idee Normalisierung der Daten: 
+- MS-Tabel komplett normalisieren 
+- einfacher, aber nicht so schön 
+
+
+
 ## Reproducibility Analysis
 ```{r}
 # Choose your protein of interest
