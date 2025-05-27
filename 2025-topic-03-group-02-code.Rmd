@@ -87,7 +87,7 @@ head(round(MS_Table_Norm, 2))
 # Verify the calculation with one example; the row sum should be ~200
 rowSums(MS_Table_Norm["1433B_HUMAN", ]) 
 ```
-
+Questions: wir sollten den DAta frame möglcihst nicht verändern!!! ... wenn man neuen Data frame will, dann neuer name
 
 ## Reproducibility Analysis
 ```{r}
@@ -104,8 +104,8 @@ data
 ```
 
 
-
-
+Questions: Hier wurde jetzt nur. RNAse-Samples betrachtet oder? 
+Wäre es nicht sinnvoller, das für viele Proteine für nur eine Fraction (Ctrl ud RNAse replicates) zu machen? Ein Protein hat ja nicht so viel Aussagekraft. Und wir wollen ja am Ende eine Aussage über die Reproducibility treffen, das heist wir brauchen eine Art statistischen Test... der uns am ende sagt mit welchem Sigma unsere Aussage "Das Experiement ist wiederholbar" zutrifft. Ich denke, dass geht nur wenn wir dass für viele Proteine machen und eine Grenze festlegen, was die sd-values angeht (mit Hilfe von ChatGPT)
 
 
 ```{r}
@@ -145,11 +145,8 @@ result_tablemean <- data.frame(
 )
 result_tablemean
 
-
-
-
 ```
-
+--> hier wurde doch basicly schon unser Barplot gemacht, wie wir ihn dann für jedes Protein mit unseren Normalisierten Values machen wollen oder? (Zusammenhang Reproducibility?)
 ```{r}
 # code for a barplot
 
