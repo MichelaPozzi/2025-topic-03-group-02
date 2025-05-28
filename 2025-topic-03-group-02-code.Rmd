@@ -97,6 +97,8 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 ## Gaussian Fitting
 --> Wir müssen Multi-Gaus_fitting verwenden, da wir manchmal mehr als eine Peak haben (ich habe mich entschieden 1-3 Peraks zu analysieren)
 --> Probleme zu überdenken: Er macht das mit den Ersatz Peak Werten jetzt für fast alle restlichen Proteine, aber wär gut wenn er kurven auch bei Proteinen mit schlechten Werten, aber Proteinen mit mehr als einem Wert machen würde 
+--> 1215 Proteine haben nur einen Intensitätswert bei Ctrl und RNAse und werden durch meine Lösung berücksichtigt (also wichtig, aber erklärt nicht die restlichen 1000-2000 Proteine) 
+
 ```{r}
 # load package to use a stury fuction for gaussian fitting, that also works with critical starting values and sloping curves
 library(minpack.lm)
