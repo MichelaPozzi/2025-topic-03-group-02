@@ -373,8 +373,6 @@ Idee Normalisierung der Daten:
 
 ## Reproducibility Analysis
 ```{r}
-# Choose your protein of interest
-protein_name <- "1433G_HUMAN"
 
 # Extract abundance values (they are in the row named "1433B_HUMAN")
 abundance_values <- as.numeric(MS_Table[protein_name, ])
@@ -388,6 +386,7 @@ data_copie
 library(dplyr)
 library(tidyr)
 library(tibble)
+
 
 # Step 1: Make MS_Table long format (protein, rowname, abundance)
 long_MS <- MS_Table %>%
@@ -409,22 +408,22 @@ print(data_all_proteins)
 #Here starts the actual pearson calculation
 
 # Step 1: Filter only relevant data
-filtered <- my_data %>%
-  filter(Fraction >= 1, Fraction <= 25,
-         Treatment %in% c("Ctrl", "RNAse"),
-         Replicate %in% c("Rep_1", "2"))  # only Rep_1 and 2
+filtered <- data_all_proteins %>%
+  filter(fraction >= 1, fraction <= 25,
+         treatment %in% c("Ctrl", "RNAse"),
+         replicate %in% c("_Rep_1", "2"))  # only Rep_1 and 2
 
 # Step 2: Make sure Rep_1 and 2 are in separate columns
 wide_data <- filtered %>%
   pivot_wider(
-    names_from = Replicate,
-    values_from = Intensity
+    names_from = replicate,
+    values_from = abundance
   )
 
 # Step 3: Calculate Pearson correlation between Rep_1 and 2
 results <- wide_data %>%
-  group_by(Protein, Treatment) %>%
-  summarise(correlation = cor(`Rep_1`, `2`), .groups = "drop")
+  group_by(protein, treatment) %>%
+  summarise(correlation = cor(`_Rep_1`, `2`), .groups = "drop")
 
 # Step 4: Show results
 print(results)
@@ -500,32 +499,30 @@ bar_positions <- barplot(result_table$Mean,
 
 
 ```{r}
-# code for Pearson correlation 
 # Load necessary packages
 library(dplyr)
 library(tidyr)
 
 # Step 1: Filter only relevant data
-filtered <- data_copie %>%
+filtered <- my_data %>%
   filter(Fraction >= 1, Fraction <= 25,
          Treatment %in% c("Ctrl", "RNAse"),
-         Replicate %in% c("_Rep_1", "2"))  # only Rep_1 and 2
+         Replicate %in% c("Rep_1", "2"))  # only Rep_1 and 2
 
 # Step 2: Make sure Rep_1 and 2 are in separate columns
 wide_data <- filtered %>%
   pivot_wider(
-    names_from = replicate,
-    values_from = intensity
+    names_from = Replicate,
+    values_from = Intensity
   )
 
 # Step 3: Calculate Pearson correlation between Rep_1 and 2
 results <- wide_data %>%
-  group_by(rownames(MS_Table), treatment) %>%
+  group_by(Protein, Treatment) %>%
   summarise(correlation = cor(`Rep_1`, `2`), .groups = "drop")
 
 # Step 4: Show results
 print(results)
-
 
 
 
