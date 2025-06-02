@@ -416,64 +416,9 @@ Idee Normalisierung der Daten:
 
 
 ## Reproducibility Analysis
-```{r}
-
-# Extract abundance values (they are in the row named "1433B_HUMAN")
-abundance_values <- as.numeric(MS_Table[protein_name, ])
-
-# Add them to the metadata table
-data_copie <- data
-data_copie$abundance <- abundance_values
-
-data_copie
-
-library(dplyr)
-library(tidyr)
-library(tibble)
 
 
-# Step 1: Make MS_Table long format (protein, rowname, abundance)
-long_MS <- MS_Table %>%
-  as.data.frame() %>%
-  rownames_to_column("protein") %>%
-  pivot_longer(
-    cols = -protein,
-    names_to = "rownames",
-    values_to = "abundance"
-  )
-
-# Step 2: Add protein column to your existing metadata table
-data_all_proteins <- data %>%
-  left_join(long_MS, by = "rownames")  # join on 'rownames'
-
-# Step 3: View the new data table
-print(data_all_proteins)
-
-#Here starts the actual pearson calculation
-
-# Step 1: Filter only relevant data
-filtered <- data_all_proteins %>%
-  filter(fraction >= 1, fraction <= 25,
-         treatment %in% c("Ctrl", "RNAse"),
-         replicate %in% c("_Rep_1", "2"))  # only Rep_1 and 2
-
-# Step 2: Make sure Rep_1 and 2 are in separate columns
-wide_data <- filtered %>%
-  pivot_wider(
-    names_from = replicate,
-    values_from = abundance
-  )
-
-# Step 3: Calculate Pearson correlation between Rep_1 and 2
-results <- wide_data %>%
-  group_by(protein, treatment) %>%
-  summarise(correlation = cor(`_Rep_1`, `2`), .groups = "drop")
-
-# Step 4: Show results
-print(results)
-```
-
-#trying to get Pearson values for a correlation 
+#looking at standart deviation and mean to get an idea 
 
 ```{r}
 
@@ -514,6 +459,10 @@ result_tablemean <- data.frame(
 result_tablemean
 
 ```
+
+##trzing to run Pearson correlation for all proteins => for now between Repetitions Rep1 and Rep2 across 25 fractions for Ctrl and RNase seperatly 
+
+#1) frist creating a long format table with=> Protein names repeat themselfs for all combinations maybe this is the problem 
 
 
 ```{r}
@@ -567,6 +516,7 @@ rownames(ms_long)
 ```
 
 
+#2) with table trying to run pearson correlation 
 
 ```{r}
 
@@ -587,7 +537,7 @@ results <- filtered %>%
     values_from = Value,
     values_fill = list(abundance = 0)   # fill missing values with 0
   ) %>%
-  summarise(correlation = cor(Rep1, Rep2), .groups = "drop")
+  summarise(correlation = cor(Rep1, Rep2), .groups = "drop")  # here something dosent work=> Rep2 is not recognized 
 
 # Print results
 print(results)
