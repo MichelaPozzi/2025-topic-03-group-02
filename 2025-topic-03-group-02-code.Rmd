@@ -110,6 +110,8 @@ qqline(log_val_qq, col = "red", lwd = 2)
 # Auf Normalverteilung testen (nach log Transformation siehe Zeile 100)
 shapiro.test(log_val_qq)
 
+## Für alle Proteine auf Normalverteilung getestet
+
 # Log-Transformation
 MS_Table_Averages_Log <- log(MS_Table_Averages + 1)
 # Ergebnis-DataFrame für Shapiro-Wilk-Test anlegen
