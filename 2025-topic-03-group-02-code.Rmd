@@ -24,6 +24,8 @@ unique(sapply(MS_Table, class)) # classification of variables
 any(is.na(MS_Table)) # missing values
 min(MS_Table) # minimum intensity
 max(MS_Table) # maximum intensity
+
+
 ```
 
 ## Restructuration of the data
@@ -463,9 +465,10 @@ results <- wide_data %>%
 print(results)
 ```
 
-
+#trying to get Pearson values for a correlation 
 
 ```{r}
+
 
 # create empty vectors to store the values
 
@@ -503,33 +506,6 @@ result_tablemean <- data.frame(
 result_tablemean
 
 ```
---> hier wurde doch basicly schon unser Barplot gemacht, wie wir ihn dann für jedes Protein mit unseren Normalisierten Values machen wollen oder? (Zusammenhang Reproducibility?)
-```{r}
-# code for a barplot
-
-# Combine by 'fraction' column
-result_table <- merge(result_tablesd, result_tablemean, by = "Fraction")
-
-# Optional: rename for clarity
-colnames(result_table) <- c("Fraction", "Mean", "SD")
-
-# Sort fractions numerically
-result_table$Fraction_num <- as.numeric(gsub("Fraction_", "", result_table$Fraction))
-result_table <- result_table[order(result_table$Fraction_num), ]
-
-# Plot bars and store bar positions
-bar_positions <- barplot(result_table$Mean,
-                         names.arg = result_table$Fraction,
-                         las = 2,
-                         col = "lightblue",
-                         ylim = c(0, max(result_table$Mean + result_table$SD, na.rm = TRUE)),
-                         main = "Mean Abundance per Fraction",
-                         ylab = "Mean Abundance")
-
-```
-
-
-
 
 
 ```{r}
@@ -537,26 +513,79 @@ bar_positions <- barplot(result_table$Mean,
 library(dplyr)
 library(tidyr)
 
-# Step 1: Filter only relevant data
-filtered <- my_data %>%
-  filter(Fraction >= 1, Fraction <= 25,
-         Treatment %in% c("Ctrl", "RNAse"),
-         Replicate %in% c("Rep_1", "2"))  # only Rep_1 and 2
+#naming coloum for Protein names with Protein so i can run my code => this is ugly open for suggestions
 
-# Step 2: Make sure Rep_1 and 2 are in separate columns
-wide_data <- filtered %>%
-  pivot_wider(
-    names_from = Replicate,
-    values_from = Intensity
+MS_Table$Protein <- rownames(MS_Table)
+MS_Table2 <- MS_Table %>% relocate(Protein)
+head(MS_Table2)
+
+# Step 2: Pivot longer — convert the wide columns into long format
+# The first column is protein names, so we keep it as id
+
+ms_long <- MS_Table %>%
+  pivot_longer(
+    cols = -Protein,  # all columns except the first (protein names)
+    names_to = "Condition",  # temporary column to store original column names
+    values_to = "Value"      # this column will store the measured values
   )
 
-# Step 3: Calculate Pearson correlation between Rep_1 and 2
-results <- wide_data %>%
-  group_by(Protein, Treatment) %>%
-  summarise(correlation = cor(`Rep_1`, `2`), .groups = "drop")
+# Step 3: Separate 'Condition' into Fraction, Treatment, and Replicate
+ms_long <- ms_long %>%
+  separate(
+    col = Condition,
+    into = c("Fraction", "Treatment", "Replicate"),
+    sep = "_"
+  )
 
-# Step 4: Show results
+# Step 4: Extract the numeric fraction number (since it's like 'Fraction1')
+ms_long <- ms_long %>%
+  mutate(
+    Fraction = as.numeric(sub("Fraction", "", Fraction))
+  )
+
+# Step 5: Rename first column to "Protein" (if it's not already)
+names(ms_long)[1] <- "Protein"
+
+# Optional: Check result
+head(ms_long)
+rownames(ms_long)
+
+
+# Now you have your tidy table:
+# Protein | Fraction | Treatment | Replicate | Value
+
+
+
+```
+
+
+
+```{r}
+
+library(dplyr)
+library(tidyr)
+
+# First: keep only the replicates we want
+filtered <- ms_long %>%
+  filter(Replicate %in% c("Rep1", "Rep2"),
+         Treatment %in% c("Ctrl", "RNAse"),
+         Fraction %in% paste0("Fraction_", 1:25))
+
+# Then: calculate correlation per protein + treatment
+results <- filtered %>%
+  group_by(Protein, Treatment) %>%
+  pivot_wider(
+    names_from = Replicate,
+    values_from = Value,
+    values_fill = list(abundance = 0)   # fill missing values with 0
+  ) %>%
+  summarise(correlation = cor(Rep1, Rep2), .groups = "drop")
+
+# Print results
 print(results)
+
+ms_long %>%
+  count(Protein, Treatment)
 
 
 
