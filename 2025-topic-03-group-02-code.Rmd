@@ -90,7 +90,6 @@ head(round(MS_Table_Norm, 2))
 rowSums(MS_Table_Norm["1433B_HUMAN", ]) 
 ```
 
-
 ## Testung auf Normalverteilung 
 --> work in progress, nicht sicher ob wir das direkt schon brauchen 
 --> hab nur bisschen rumprobiert 
@@ -343,7 +342,7 @@ rows_df <- lapply(fit_results, function(x){
   as.data.frame(x)
 })
 
-#assemble all date in one dataframe
+#assemble all data in one dataframe
 # problem: rows_df is a list of one row dataframes (since we used lapply), we need to split up the list with do.call, and bind all dataframes with rbind
 MS_Data_Fitted <- do.call(rbind, rows_df)
 rownames(MS_Data_Fitted) <- rownames(MS_Table_Norm)
@@ -352,20 +351,27 @@ head(MS_Data_Fitted)
 # Number of proteins that where successfully fitted
 sum(MS_Data_Fitted$Fit_OK_Ctrl & MS_Data_Fitted$Fit_OK_RNAse) 
 
+# Vector with all non-successfully fitted proteins
+Protein_IDs_fit_error <- rownames(subset(MS_Data_Fitted, Fit_OK_Ctrl == FALSE | Fit_OK_RNAse == FALSE))
 ```
-
 ## Plotting a Protein
 ```{r}
-# choos protein
-protein <- "AB1IP_HUMAN"  
+#Choose protein
+protein <- "BRI3B_HUMAN"  
 
-# find data for protein in MS_Data_Fitted and 
+#Was gausian fitting successful for this protein?
+!protein %in% Protein_IDs_fit_error
+
+#Select protein data in MS_Data_Fitted 
 row <- MS_Data_Fitted[rownames(MS_Data_Fitted) == protein, , drop = FALSE]
 
-# x-Achse
+#x-achsis for the plot
 x_vals <- seq(1, 25, by = 0.1)
 
-# Gaussian-Kurvenfunktion (für Ctrl oder RNAse)
+#Compute function for gauss curve with all relevant parameters
+#create vector y with as much values as x (intensity_values)
+# we extract data for A,mu,etc. through columnname, recreated by paste0 function
+# see that we use y to sum um the intensity-values for all peaks /for each gauss curve per peak 
 gauss_curve <- function(row, condition, x) {
   y <- rep(0, length(x))
   n_peaks <- row[[paste0("n_peaks_", condition)]]
@@ -378,15 +384,17 @@ gauss_curve <- function(row, condition, x) {
   return(y)
 }
 
-# Berechne die Kurven
+# compute intensity values for Ctrl and RNAse
 y_ctrl <- gauss_curve(row, "Ctrl", x_vals)
 y_rnase <- gauss_curve(row, "RNAse", x_vals)
 
 # Plot
+# ylim is for focus on intensity range (not 100% but only important range)
+# fit iensitenity ≠ ms_intensity!!! addition of gaus values for the peaks, make it possible that we have more than 100%
 plot(x_vals, y_ctrl, type = "l", col = "green", lwd = 2,
-     ylim = range(c(y_ctrl, y_rnase), na.rm = TRUE),
-     xlab = "Fraktion", ylab = "Fit-Intensität",
-     main = paste("Gaussian-Fits für", protein))
+     ylim = range(c(y_ctrl, y_rnase), na.rm = TRUE), 
+     xlab = "Fraction", ylab = "Fit-Intensity",
+     main = paste("Gaussian-Fits for", protein))
 lines(x_vals, y_rnase, col = "red", lwd = 2)
 
 legend("topright", legend = c("Ctrl", "RNAse"),
