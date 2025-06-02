@@ -96,10 +96,6 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 ```{r}
 # Beispielhaftes Protein auswählen
 protein_qq <- "1433E_HUMAN"
-# Daten für xy-Punktdiagramm sammeln
-fractions_xy <- 1:25
-ctrl_xy <- grep("^Ctrl_", colnames(MS_Table_Norm), value = TRUE)
-protein_val_xy <- as.numeric(MS_Table_Norm[protein_qq, ctrl_xy])
 # Daten für QQ-Plot sammeln
 ctrl_qq <- grep("^Ctrl_", colnames(MS_Table_Averages), value = TRUE)
 protein_val_qq <- as.numeric(MS_Table_Averages[protein_qq, ctrl_qq])
@@ -113,10 +109,49 @@ qqnorm(log_val_qq,
 qqline(log_val_qq, col = "red", lwd = 2)
 # Auf Normalverteilung testen (nach log Transformation siehe Zeile 100)
 shapiro.test(log_val_qq)
-# xy-Punktdiagramm plotten
-plot(fractions_xy, protein_val_xy, type = "o", col = "blue", pch = 16,
-     xlab = "Fraktion", ylab = "Intensität",
-     main = paste("Protein:", protein_qq, "(Ctrl)"))
+
+# Log-Transformation
+MS_Table_Averages_Log <- log(MS_Table_Averages + 1)
+# Ergebnis-DataFrame für Shapiro-Wilk-Test anlegen
+shapiro_results_ctrl_log <- data.frame(
+  Protein_ID = rownames(MS_Table_Averages_Log),
+  Shapiro_W = NA,
+  Shapiro_p = NA
+)
+
+# Spaltennamen für die Ctrl-Fraktionen extrahieren
+ctrl_fraction_columns_log <- grep("^Ctrl_", colnames(MS_Table_Averages_Log), value = TRUE)
+
+# Schleife über alle Proteine in MS_Table_Averages_Log
+for (protein_index in 1:nrow(MS_Table_Averages_Log)) {
+  
+  # Aktuelles Protein bestimmen
+  current_protein <- rownames(MS_Table_Averages_Log)[protein_index]
+  
+  # Log-transformierte Werte der Ctrl-Fraktionen für dieses Protein extrahieren
+  current_ctrl_values_log <- as.numeric(MS_Table_Averages_Log[current_protein, ctrl_fraction_columns_log])
+  
+  # Prüfen ob alle Werte gleich sind
+  if (length(unique(current_ctrl_values_log)) > 1) {
+    # Nur wenn Varianz vorhanden, Shapiro-Test durchführen
+    shapiro_test_result <- shapiro.test(current_ctrl_values_log)
+    shapiro_results_ctrl_log$Shapiro_W[protein_index] <- shapiro_test_result$statistic
+    shapiro_results_ctrl_log$Shapiro_p[protein_index] <- shapiro_test_result$p.value
+  } else {
+    # Wenn alle Werte gleich sind → NA setzen
+    shapiro_results_ctrl_log$Shapiro_W[protein_index] <- NA
+    shapiro_results_ctrl_log$Shapiro_p[protein_index] <- NA
+  }
+}
+
+# Ergebnisse anzeigen
+head(shapiro_results_ctrl_log)
+
+# Schwellenwert für Normalverteilung definieren (p >= 0.05)
+shapiro_results_ctrl_log$Is_Normal_Distributed <- shapiro_results_ctrl_log$Shapiro_p >= 0.05
+
+# Übersicht, wie viele Proteine als normalverteilt eingestuft werden
+table(shapiro_results_ctrl_log$Is_Normal_Distributed)
 
 ```
 
@@ -124,10 +159,7 @@ plot(fractions_xy, protein_val_xy, type = "o", col = "blue", pch = 16,
 
 
 
-## Reproducibility Analysis
-```{r}
 
-```
 
 # Data Analysis
 ## Gaussian Fitting
