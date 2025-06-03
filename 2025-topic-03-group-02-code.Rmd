@@ -514,7 +514,9 @@ pheatmap(heatmap_matrix,
          cluster_rows = FALSE, 
          cluster_cols = FALSE, 
          show_rownames = TRUE, 
-         show_colnames = TRUE)
+         show_colnames = TRUE,
+         fontsize_row = 4,
+         fontsize_col = 4)
 
 ```
 
