@@ -442,7 +442,7 @@ full_correlation_results <- data.frame(
   Fraction_1 = character(),
   Replicate_2 = character(),
   Fraction_2 = character(),
-  Pearson_r = numeric(),
+  Spearman_r = numeric(),
   stringsAsFactors = FALSE
 )
 
@@ -467,7 +467,7 @@ for (treatment in c("Ctrl", "RNAse")) {
       col2 <- which(replicate == paste0(treatment, "_Rep", rep2) & fraction == paste0("Fraction_", frac2))
       
       # Pearson Korrelation berechnen
-      cor_value <- cor(MS_Table[, col1], MS_Table[, col2], method = "pearson", use = "complete.obs")
+      cor_value <- cor(MS_Table[, col1], MS_Table[, col2], method = "spearman", use = "complete.obs")
       
       # Ergebnis speichern
       full_correlation_results <- rbind(full_correlation_results, data.frame(
@@ -476,7 +476,7 @@ for (treatment in c("Ctrl", "RNAse")) {
         Fraction_1 = paste0("Fraction_", frac1),
         Replicate_2 = paste0("Rep", rep2),
         Fraction_2 = paste0("Fraction_", frac2),
-        Pearson_r = cor_value
+        Spearman_r = cor_value
       ))
     }
   }
@@ -500,17 +500,17 @@ treatment_to_plot <- "RNAse"
 # Tabelle filtern
 heatmap_data <- full_correlation_results %>%
   filter(Treatment == treatment_to_plot) %>%
-  select(Row, Col, Pearson_r)
+  select(Row, Col, Spearman_r)
 
 # In Matrix umwandeln
 heatmap_matrix <- heatmap_data %>%
-  pivot_wider(names_from = Col, values_from = Pearson_r, values_fill = NA) %>%
+  pivot_wider(names_from = Col, values_from = Spearman_r, values_fill = NA) %>%
   column_to_rownames("Row") %>%
   as.matrix()
 
 # Jetzt Heatmap zeichnen
 pheatmap(heatmap_matrix,
-         main = paste("Pearson Correlation Heatmap -", treatment_to_plot),
+         main = paste("Spearman Correlation Heatmap -", treatment_to_plot),
          cluster_rows = FALSE, 
          cluster_cols = FALSE, 
          show_rownames = TRUE, 
