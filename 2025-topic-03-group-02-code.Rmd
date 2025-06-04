@@ -266,7 +266,7 @@ pheatmap(heatmap_matrix,
 ```
 
 # Data Analysis
-## Classification of Peaks
+## Peak Characteristics
 
 ```{r}
 t = max(y) * 0.03 
@@ -340,7 +340,32 @@ for (i in 1:6) {
 Peak_Data <- Peak_Data[, order]
 head(Peak_Data)
 ```
+## Allgemeine Funktion für Shift Distance über die Peak_Means (zur Weiteren Anwendung und Anpassung für T-Test)
+--> wir haben jetzt schon Shift länge (der Durchschnitte), es fehlt noch Shift Richtung und natürlich der RBP T-Test
+```{r}
+  means_peak_position_Ctrl <- numeric(nrow(Peak_Data))
+  means_peak_position_RNAse <- numeric(nrow(Peak_Data))
+  shift_length <- numeric(nrow(Peak_Data))
+  
+for (p in seq_len(nrow(Peak_Data))) {
+  
+  positions_Ctrl <- as.numeric(sapply(1:6, function(i) Peak_Data[p, paste0("peak", i, "_position_Ctrl")]))
+  means_peak_position_Ctrl[p] <- mean(positions_Ctrl, na.rm = TRUE)
+  
+  positions_RNAse <- as.numeric(sapply(1:6, function(i) Peak_Data[p, paste0("peak", i, "_position_RNAse")]))
+  means_peak_position_RNAse[p] <- mean(positions_RNAse, na.rm = TRUE)
+  
+  shift_length[p] <- means_peak_position_Ctrl[p] - means_peak_position_RNAse[p]
+}
 
+  Shift_Data <- data.frame(
+  means_peak_position_Ctrl = means_peak_position_Ctrl,
+  means_peak_position_RNAse = means_peak_position_RNAse,
+  shift_length = shift_length,
+  row.names = rownames(Peak_Data))
+
+head(Shift_Data)
+```
 
 # Try and error (BackUP)
 ##looking at standart deviation and mean to get an idea 
