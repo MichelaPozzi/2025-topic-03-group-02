@@ -107,7 +107,7 @@ ctrl_norm_t2 <- MS_Table[, ctrl_cols_t2] / rowSums(MS_Table[, ctrl_cols_t2]) * 1
 ctrl_norm_t3 <- MS_Table[, ctrl_cols_t3] / rowSums(MS_Table[, ctrl_cols_t3]) * 100
 RNAse_norm_t1 <- MS_Table[, RNAse_cols_t1] / rowSums(MS_Table[, RNAse_cols_t1]) * 100
 RNAse_norm_t2 <- MS_Table[, RNAse_cols_t2] / rowSums(MS_Table[, RNAse_cols_t2]) * 100
-RNAse_norm_t3 <- MS_Table[, RNAse_cols_t3] / rowSums(MS_Table[, RNase_cols_t3]) * 100
+RNAse_norm_t3 <- MS_Table[, RNAse_cols_t3] / rowSums(MS_Table[, RNAse_cols_t3]) * 100
 
 # Combine in one table 
 MS_Table_Norm_for_t <- cbind(ctrl_norm_t1, RNAse_norm_t1, ctrl_norm_t2, RNAse_norm_t2, ctrl_norm_t3, RNAse_norm_t3)
@@ -415,6 +415,61 @@ for (p in seq_len(nrow(Peak_Data))) {
 
 head(Shift_Data)
 ```
+
+
+
+# Determining position of peaks by center of mass function trough all replicates and conditions for all proteins :)
+```{r}
+# aufstellen von variablen 
+
+fractions <- 1:25
+conditions <- c("Ctrl", "RNase")
+replicates <- c("Rep1", "Rep2", "Rep3")
+
+#liste erstellen 
+
+results_ttest <- list()
+
+#looping through conditions and replicates as we want them all seperate
+
+for (cond in conditions) {
+  for (rep in replicates) {
+    
+#selecting colums with grep diesen strich verssteh ich nicht "chat sagt "makes one combined pattern with ORs (|) between them, so grep matches any of them."
+
+pattern <- paste0("^Fraction", fractions, "_", cond, "_", rep, "$")
+    cols <- grep(paste(pattern, collapse="|"), colnames(MS_Table_Norm_for_t), value = TRUE)  
+
+subdata <- MS_Table_Norm_for_t[, cols]   
+#storing coloums 
+
+subdata <- subdata[, order(as.numeric(gsub("Fraction(\\d+)_.*", "\\1", cols)))]  #extracts the fraction number from column names.
+
+#center of mass calculation
+
+com <- apply(subdata, 1, function(x) {
+      sum(x * fractions) / sum(x)
+    })
+#store result in list 
+
+results_ttest[[paste(cond, rep, sep = "_")]] <- com
+}
+}
+
+#convert list to dataframe
+
+# After the loops have finished:
+com_MS_Table_Norm_for_t <- as.data.frame(results_ttest)   # convert list into data frame
+
+# Add protein names as a new column:
+com_MS_Table_Norm_for_t <- cbind(Protein = rownames(com_MS_Table_Norm_for_t), com_MS_Table_Norm_for_t)
+
+
+# View the first few rows to check
+head(com_MS_Table_Norm_for_t)
+```
+
+
 
 ```{r}
 # Berechnung CoM erstmal beispielhaft über Normalisierte Daten
