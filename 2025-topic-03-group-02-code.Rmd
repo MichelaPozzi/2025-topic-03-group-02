@@ -90,6 +90,52 @@ head(round(MS_Table_Norm, 2))
 rowSums(MS_Table_Norm["1433B_HUMAN", ]) 
 ```
 
+
+## Normalization of whole MS_Table to 100  
+```{r}
+# Split up all Ctrl and RNAse values and their individual Reps 
+ctrl_cols_t1 <- grep("_Ctrl_Rep1", colnames(MS_Table))
+ctrl_cols_t2 <- grep("_Ctrl_Rep2", colnames(MS_Table))
+ctrl_cols_t3 <- grep("_Ctrl_Rep3", colnames(MS_Table))
+RNAse_cols_t1 <- grep("_RNase_Rep1", colnames(MS_Table))
+RNAse_cols_t2 <- grep("_RNase_Rep2", colnames(MS_Table))
+RNAse_cols_t3 <- grep("_RNase_Rep3", colnames(MS_Table))
+
+# Normalization of each group to 100 
+ctrl_norm_t1 <- MS_Table[, ctrl_cols_t1] / rowSums(MS_Table[, ctrl_cols_t1]) * 100
+ctrl_norm_t2 <- MS_Table[, ctrl_cols_t2] / rowSums(MS_Table[, ctrl_cols_t2]) * 100
+ctrl_norm_t3 <- MS_Table[, ctrl_cols_t3] / rowSums(MS_Table[, ctrl_cols_t3]) * 100
+RNAse_norm_t1 <- MS_Table[, RNAse_cols_t1] / rowSums(MS_Table[, RNAse_cols_t1]) * 100
+RNAse_norm_t2 <- MS_Table[, RNAse_cols_t2] / rowSums(MS_Table[, RNAse_cols_t2]) * 100
+RNAse_norm_t3 <- MS_Table[, RNAse_cols_t3] / rowSums(MS_Table[, RNase_cols_t3]) * 100
+
+# Combine in one table 
+MS_Table_Norm_for_t <- cbind(ctrl_norm_t1, RNAse_norm_t1, ctrl_norm_t2, RNAse_norm_t2, ctrl_norm_t3, RNAse_norm_t3)
+
+# In gewünschter Reihenfolge ordnen
+fractions <- 1:25
+reps <- 1:3
+conditions <- c("Ctrl", "RNase") 
+
+
+ordered_names <- c()
+
+for (fraction in fractions) {
+  for (rep in reps) {
+    for (condition in conditions) {
+      name <- paste0("Fraction", fraction, "_", condition, "_Rep", rep)
+      ordered_names <- c(ordered_names, name)
+    }
+  }
+}
+
+MS_Table_Norm_for_t <- MS_Table_Norm_for_t[, ordered_names]
+head(MS_Table_Norm_for_t)
+# Verify the calculation with one example; the row sum should be ~600 (3*Ctrl 100% + 3*RNAse 100%)
+rowSums(MS_Table_Norm_for_t["1433B_HUMAN", ]) 
+```
+
+
 ## Plotting a protein with normalised data (Notfitted)
 ```{r}
 # Protein auswählen
@@ -366,6 +412,22 @@ for (p in seq_len(nrow(Peak_Data))) {
 
 head(Shift_Data)
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Try and error (BackUP)
 ##looking at standart deviation and mean to get an idea 
