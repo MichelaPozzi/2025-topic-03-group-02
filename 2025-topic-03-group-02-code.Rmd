@@ -139,7 +139,7 @@ rowSums(MS_Table_Norm_for_t["1433B_HUMAN", ])
 ## Plotting a protein with normalised data (Notfitted)
 ```{r}
 # Protein auswählen
-protein_of_interest <- "ABR_HUMAN" # hier dein Protein einsetzen
+protein_of_interest <- "ABCF1_HUMAN" # hier dein Protein einsetzen
 
 # Zeile für das Protein extrahieren
 protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
@@ -391,6 +391,7 @@ head(Peak_Data)
 --> das ist zu vlt. zu einfach gedacht, siehe Bsp. ABR_HUMAN (Wie müssen vlt ich Peakamplitude mit rein nehmen, Gewichtung der Peaks)
 --> Idee zur Lösung: CoM verwenden (Center of Mass über alle Fraktionen, hat laut ChatGPT auch Maiwen verwendet und sei methodisch korrekt) --> als Test sollen wir Wilcoxson Rank-Sum-Test verwenden? aber hab ich noch nicht drüber navhgedacht
 ```{r}
+# Berechnung Average Peak Shift (wahrscheinlich nicht brauchbar)
   means_peak_position_Ctrl <- numeric(nrow(Peak_Data))
   means_peak_position_RNAse <- numeric(nrow(Peak_Data))
   shift_length <- numeric(nrow(Peak_Data))
@@ -417,12 +418,14 @@ head(Shift_Data)
 
 ```{r}
 # Berechnung CoM erstmal beispielhaft über Normalisierte Daten
+# Shift nach Links ist RBP, d.h. Shift_Distance > 1
 
 x <- seq(1:25)
 
 CoM_Ctrl <- numeric(nrow(MS_Table_Norm))
 CoM_RNAse <- numeric(nrow(MS_Table_Norm))
 Shift_distance <- numeric(nrow(MS_Table_Norm))
+Shift_direction <- numeric(nrow(MS_Table_Norm))
 
 
 for (p in seq_len(nrow(MS_Table_Norm))) {
@@ -433,17 +436,18 @@ for (p in seq_len(nrow(MS_Table_Norm))) {
   CoM_Ctrl[p] <- sum(ctrl_vals * x) / sum(ctrl_vals)
   CoM_RNAse[p] <- sum(rnase_vals * x) / sum(rnase_vals)
   Shift_distance[p] <- CoM_Ctrl[p] - CoM_RNAse[p] 
-  
+  Shift_direction[p] <- sign(Shift_distance[p]) # -1 would be right shift, 1 would be left shift
 }
 
  Shift_Data_2 <- data.frame(
   CoM_Ctrl = CoM_Ctrl,
   CoM_RNAse = CoM_RNAse,
   Shift_distance = Shift_distance,
+  Shift_direction = Shift_direction,
   row.names = rownames(MS_Table_Norm))
 
 head(Shift_Data_2)
-
+sum(Shift_Data_2$Shift_distance > 1, na.rm = TRUE)
 ```
 
 
