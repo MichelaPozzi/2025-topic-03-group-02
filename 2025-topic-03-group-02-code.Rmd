@@ -386,8 +386,10 @@ for (i in 1:6) {
 Peak_Data <- Peak_Data[, order]
 head(Peak_Data)
 ```
+
 ## Allgemeine Funktion für Shift Distance über die Peak_Means (zur Weiteren Anwendung und Anpassung für T-Test)
 --> das ist zu vlt. zu einfach gedacht, siehe Bsp. ABR_HUMAN (Wie müssen vlt ich Peakamplitude mit rein nehmen, Gewichtung der Peaks)
+--> Idee zur Lösung: CoM verwenden (Center of Mass über alle Fraktionen, hat laut ChatGPT auch Maiwen verwendet und sei methodisch korrekt) --> als Test sollen wir Wilcoxson Rank-Sum-Test verwenden? aber hab ich noch nicht drüber navhgedacht
 ```{r}
   means_peak_position_Ctrl <- numeric(nrow(Peak_Data))
   means_peak_position_RNAse <- numeric(nrow(Peak_Data))
@@ -413,20 +415,36 @@ for (p in seq_len(nrow(Peak_Data))) {
 head(Shift_Data)
 ```
 
+```{r}
+# Berechnung CoM erstmal beispielhaft über Normalisierte Daten
+
+x <- seq(1:25)
+
+CoM_Ctrl <- numeric(nrow(MS_Table_Norm))
+CoM_RNAse <- numeric(nrow(MS_Table_Norm))
+Shift_distance <- numeric(nrow(MS_Table_Norm))
 
 
+for (p in seq_len(nrow(MS_Table_Norm))) {
+  row_vals <- as.numeric(MS_Table_Norm [p,])
+  ctrl_vals <- row_vals[seq(1, 50, by =2)]
+  rnase_vals <- row_vals[seq(2, 50, by=2)]
+  
+  CoM_Ctrl[p] <- sum(ctrl_vals * x) / sum(ctrl_vals)
+  CoM_RNAse[p] <- sum(rnase_vals * x) / sum(rnase_vals)
+  Shift_distance[p] <- CoM_Ctrl[p] - CoM_RNAse[p] 
+  
+}
 
+ Shift_Data_2 <- data.frame(
+  CoM_Ctrl = CoM_Ctrl,
+  CoM_RNAse = CoM_RNAse,
+  Shift_distance = Shift_distance,
+  row.names = rownames(MS_Table_Norm))
 
+head(Shift_Data_2)
 
-
-
-
-
-
-
-
-
-
+```
 
 
 # Try and error (BackUP)
