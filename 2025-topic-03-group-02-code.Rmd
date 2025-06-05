@@ -387,38 +387,11 @@ Peak_Data <- Peak_Data[, order]
 head(Peak_Data)
 ```
 
-## Allgemeine Funktion für Shift Distance über die Peak_Means (zur Weiteren Anwendung und Anpassung für T-Test)
---> das ist zu vlt. zu einfach gedacht, siehe Bsp. ABR_HUMAN (Wie müssen vlt ich Peakamplitude mit rein nehmen, Gewichtung der Peaks)
+
 --> Idee zur Lösung: CoM verwenden (Center of Mass über alle Fraktionen, hat laut ChatGPT auch Maiwen verwendet und sei methodisch korrekt) --> als Test sollen wir Wilcoxson Rank-Sum-Test verwenden? aber hab ich noch nicht drüber navhgedacht
-```{r}
-# Berechnung Average Peak Shift (wahrscheinlich nicht brauchbar)
-  means_peak_position_Ctrl <- numeric(nrow(Peak_Data))
-  means_peak_position_RNAse <- numeric(nrow(Peak_Data))
-  shift_length <- numeric(nrow(Peak_Data))
-  
-for (p in seq_len(nrow(Peak_Data))) {
-  
-  positions_Ctrl <- as.numeric(sapply(1:6, function(i) Peak_Data[p, paste0("peak", i, "_position_Ctrl")]))
-  means_peak_position_Ctrl[p] <- mean(positions_Ctrl, na.rm = TRUE)
-  
-  positions_RNAse <- as.numeric(sapply(1:6, function(i) Peak_Data[p, paste0("peak", i, "_position_RNAse")]))
-  means_peak_position_RNAse[p] <- mean(positions_RNAse, na.rm = TRUE)
-  
-  shift_length[p] <- means_peak_position_Ctrl[p] - means_peak_position_RNAse[p]
-}
-
-  Shift_Data <- data.frame(
-  means_peak_position_Ctrl = means_peak_position_Ctrl,
-  means_peak_position_RNAse = means_peak_position_RNAse,
-  shift_length = shift_length,
-  row.names = rownames(Peak_Data))
-
-head(Shift_Data)
-```
 
 
-
-# Determining position of peaks by center of mass function trough all replicates and conditions for all proteins :)
+# Center of mass function (CoM) trough all replicates and conditions for all proteins :)
 ```{r}
 # aufstellen von variablen 
 
@@ -428,7 +401,7 @@ replicates <- c("Rep1", "Rep2", "Rep3")
 
 #liste erstellen 
 
-results_ttest <- list()
+results_com <- list()
 
 #looping through conditions and replicates as we want them all seperate
 
@@ -437,23 +410,23 @@ for (cond in conditions) {
     
 #selecting colums with grep diesen strich verssteh ich nicht "chat sagt "makes one combined pattern with ORs (|) between them, so grep matches any of them."
 
-pattern <- paste0("^Fraction", fractions, "_", cond, "_", rep, "$")
+    pattern <- paste0("^Fraction", fractions, "_", cond, "_", rep, "$")
     cols <- grep(paste(pattern, collapse="|"), colnames(MS_Table_Norm_for_t), value = TRUE)  
 
-subdata <- MS_Table_Norm_for_t[, cols]   
+    subdata <- MS_Table_Norm_for_t[, cols]   
 #storing coloums 
 
-subdata <- subdata[, order(as.numeric(gsub("Fraction(\\d+)_.*", "\\1", cols)))]  #extracts the fraction number from column names.
+    subdata <- subdata[, order(as.numeric(gsub("Fraction(\\d+)_.*", "\\1", cols)))]  #extracts the fraction number from column names.
 
 #center of mass calculation
 
-com <- apply(subdata, 1, function(x) {
+    com <- apply(subdata, 1, function(x) {
       sum(x * fractions) / sum(x)
     })
 #store result in list 
 
-results_ttest[[paste(cond, rep, sep = "_")]] <- com
-}
+    results_com[[paste(cond, rep, sep = "_")]] <- com
+  }
 }
 
 #convert list to dataframe
@@ -461,9 +434,8 @@ results_ttest[[paste(cond, rep, sep = "_")]] <- com
 # After the loops have finished:
 com_MS_Table_Norm_for_t <- as.data.frame(results_ttest)   # convert list into data frame
 
-# Add protein names as a new column:
-com_MS_Table_Norm_for_t <- cbind(Protein = rownames(com_MS_Table_Norm_for_t), com_MS_Table_Norm_for_t)
-
+# Add correct rownames:
+rownames(com_MS_Table_Norm_for_t) <- rownames(MS_Table_Norm_for_t)
 
 # View the first few rows to check
 head(com_MS_Table_Norm_for_t)
