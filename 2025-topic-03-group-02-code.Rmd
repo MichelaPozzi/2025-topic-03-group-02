@@ -8,7 +8,22 @@ date: "2025-05-16"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-##Loading MS-Data
+Legend for all tables / dataframes:
+
+- MS_Table: Original table
+- MS_Table_Averages: Triplicates normalised (average)
+- MS_Table_Norm: Triplicates normalised + Amount of protein normalised
+
+- shapiro_results: results of test on normal distribution
+- full_correlation_results: results of spearman correlation
+
+- Peak_Data: Number of peaks, peak heights and peak positions for Ctrl and RNase (on MS_Table_Norm)
+- Shift_Data: CoM for Ctrl and RNAse, Shift distance and Shift direction (+ Shift Significance) (on MS_Table_Norm)
+
+- Norm_Data_for_t: Amount of protein normalised for all replicates
+- CoM_Data_for_t: CoM for Ctrl and RNAse for all replicates
+
+#Loading MS-Data
 ```{r}
 MS_Table <- read.table("RDeeP_HeLa_Mitosis.csv", header = TRUE, row.names = 1, sep = ";")
 ```
@@ -31,8 +46,8 @@ max(MS_Table) # maximum intensity
 ## Restructuration of the data
 Create a dataframe with factors that make it possible to access specific data from MS_Table
 ```{r}
-treatment <- factor(rep(c("Ctrl", "RNAse"), each = 3, length.out = 150))
-replicate <- factor(rep(c("Ctrl_Rep1", "Ctrl_Rep2", "Ctrl_Rep3", "RNAse_Rep1","RNAse_Rep2", "RNAse_Rep3"),25))
+treatment <- factor(rep(c("Ctrl", "RNase"), each = 3, length.out = 150))
+replicate <- factor(rep(c("Ctrl_Rep1", "Ctrl_Rep2", "Ctrl_Rep3", "RNase_Rep1","RNase_Rep2", "RNase_Rep3"),25))
 fraction <- factor(rep(paste0("Fraction_", 1:25), each = 6))
 
 data <- data.frame(rownames = colnames(MS_Table),treatment = treatment, replicate = replicate, fraction = fraction)
@@ -54,9 +69,9 @@ for (f in levels(fraction)) {
   average.Ctrl <- rowMeans(MS_Table[,cols.Ctrl]) 
   average.list[[paste0("Ctrl_",f)]] <- average.Ctrl # paste0 funktion checken
   
-  cols.RNAse <- which(fraction == f & treatment == "RNAse")
-  average.RNAse <- rowMeans(MS_Table[,cols.RNAse])
-  average.list[[paste0("RNAse_",f)]] <- average.RNAse
+  cols.RNase <- which(fraction == f & treatment == "RNase")
+  average.RNase <- rowMeans(MS_Table[,cols.RNase])
+  average.list[[paste0("RNase_",f)]] <- average.RNase
 }
 
 MS_Table_Averages <- as.data.frame(average.list) #convert list to dataframe
@@ -67,101 +82,55 @@ fractions <- paste0("Fraction_", 1:25)
 
 ordered_names <- as.vector(rbind(
   paste0("Ctrl_", fractions),
-  paste0("RNAse_", fractions)
+  paste0("RNase_", fractions)
 ))
 
 MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 head(MS_Table_Averages)
 ```
 ## Normalization to 100 
-Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
+- Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
 ```{r}
 # Split up Control and RNAse values 
 ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages)) # grep function genauer schauen 
-rnase_cols <- grep("^RNAse_", colnames(MS_Table_Averages))
+rnase_cols <- grep("^RNase_", colnames(MS_Table_Averages))
+
 # Normalization of each group to 100 
 ctrl_norm <- MS_Table_Averages[, ctrl_cols] / rowSums(MS_Table_Averages[, ctrl_cols]) * 100
 rnase_norm <- MS_Table_Averages[, rnase_cols] / rowSums(MS_Table_Averages[, rnase_cols]) * 100
+
 # Combine in one table 
 MS_Table_Norm <- cbind(ctrl_norm, rnase_norm)
 MS_Table_Norm <- MS_Table_Norm[, colnames(MS_Table_Averages)]
 head(round(MS_Table_Norm, 2))
+
 # Verify the calculation with one example; the row sum should be ~200 (Ctrl 100% + RNAse 100%)
 rowSums(MS_Table_Norm["1433B_HUMAN", ]) 
 ```
 
-
-## Normalization of whole MS_Table to 100  
+## Plotting a protein with normalised data 
 ```{r}
-# Split up all Ctrl and RNAse values and their individual Reps 
-ctrl_cols_t1 <- grep("_Ctrl_Rep1", colnames(MS_Table))
-ctrl_cols_t2 <- grep("_Ctrl_Rep2", colnames(MS_Table))
-ctrl_cols_t3 <- grep("_Ctrl_Rep3", colnames(MS_Table))
-RNAse_cols_t1 <- grep("_RNase_Rep1", colnames(MS_Table))
-RNAse_cols_t2 <- grep("_RNase_Rep2", colnames(MS_Table))
-RNAse_cols_t3 <- grep("_RNase_Rep3", colnames(MS_Table))
-
-# Normalization of each group to 100 
-ctrl_norm_t1 <- MS_Table[, ctrl_cols_t1] / rowSums(MS_Table[, ctrl_cols_t1]) * 100
-ctrl_norm_t2 <- MS_Table[, ctrl_cols_t2] / rowSums(MS_Table[, ctrl_cols_t2]) * 100
-ctrl_norm_t3 <- MS_Table[, ctrl_cols_t3] / rowSums(MS_Table[, ctrl_cols_t3]) * 100
-RNAse_norm_t1 <- MS_Table[, RNAse_cols_t1] / rowSums(MS_Table[, RNAse_cols_t1]) * 100
-RNAse_norm_t2 <- MS_Table[, RNAse_cols_t2] / rowSums(MS_Table[, RNAse_cols_t2]) * 100
-RNAse_norm_t3 <- MS_Table[, RNAse_cols_t3] / rowSums(MS_Table[, RNAse_cols_t3]) * 100
-
-# Combine in one table 
-MS_Table_Norm_for_t <- cbind(ctrl_norm_t1, RNAse_norm_t1, ctrl_norm_t2, RNAse_norm_t2, ctrl_norm_t3, RNAse_norm_t3)
-
-# In gewünschter Reihenfolge ordnen
-fractions <- 1:25
-reps <- 1:3
-conditions <- c("Ctrl", "RNase") 
-
-
-ordered_names <- c()
-
-for (fraction in fractions) {
-  for (rep in reps) {
-    for (condition in conditions) {
-      name <- paste0("Fraction", fraction, "_", condition, "_Rep", rep)
-      ordered_names <- c(ordered_names, name)
-    }
-  }
-}
-
-MS_Table_Norm_for_t <- MS_Table_Norm_for_t[, ordered_names]
-head(MS_Table_Norm_for_t)
-# Verify the calculation with one example; the row sum should be ~600 (3*Ctrl 100% + 3*RNAse 100%)
-rowSums(MS_Table_Norm_for_t["1433B_HUMAN", ]) 
-```
-
-
-## Plotting a protein with normalised data (Notfitted)
-```{r}
-# Protein auswählen
+# Choos Protein
 protein_of_interest <- "ABCF1_HUMAN" # hier dein Protein einsetzen
 
-# Zeile für das Protein extrahieren
+# Extract protein data
 protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
 
-# Vektoren für Ctrl und RNAse erstellen
+# Store Ctrl and RNase Values 
 ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
 rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
 
-# Fraktionen
 fractions <- 1:25
 
 # Plot
 plot(fractions, ctrl_values, type="o", pch=16, lty=1, col="green", ylim=range(c(ctrl_values, rnase_values)),
      xlab="Fraction", ylab="Normalized Intensity", main=protein_of_interest)
 lines(fractions, rnase_values, type="o",pch =16, lty=1, col="red")
-legend("topright", legend=c("Ctrl", "RNAse"), col=c("green", "red"), lty=1, pch=16)
+legend("topright", legend=c("Ctrl", "RNase"), col=c("green", "red"), lty=1, pch=16)
 ```
 
-## Testung auf Normalverteilung 
---> work in progress, nicht sicher ob wir das direkt schon brauchen 
---> hab nur bisschen rumprobiert ---> Bin mir wirklich nicht sicher ob das so stimmt, muss ich nochmal anschauen, aber bin zu müde, möchte es aber hier schon mal speichern 
---> Note: QQ Plots für Normalverteilung 
+## Test for Normal Distribution (requirement for t-test) 
+- Description nessesary and all code descriptions in english
 ```{r}
 # Pakete laden 
 library(dplyr)
@@ -219,12 +188,10 @@ head(shapiro_results)
 
 # Übersicht wie viele normalverteilt
 table(shapiro_results$Is_Normal_Distributed)
-
-
-
 ```
 
 ## Reproducibility Analysis
+- Description nessesary and all code descriptions in english
 ```{r}
 # Leere Liste für Ergebnisse
 full_correlation_results <- data.frame(
@@ -237,8 +204,8 @@ full_correlation_results <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Alle Treatments durchgehen (Ctrl und RNAse)
-for (treatment in c("Ctrl", "RNAse")) {
+# Alle Treatments durchgehen (Ctrl und RNase)
+for (treatment in c("Ctrl", "RNase")) {
   
   # Alle Replikat-Fraktions-Kombinationen erzeugen
   combo1 <- expand.grid(Rep = 1:3, Fraction = 1:25)
@@ -285,8 +252,8 @@ full_correlation_results <- full_correlation_results %>%
    mutate(Row = paste0(Replicate_1, "_F", gsub("Fraction_", "", Fraction_1)),
          Col = paste0(Replicate_2, "_F", gsub("Fraction_", "", Fraction_2)))
 
-# Wir machen das einmal für ein Treatment, z.B. "RNAse"
-treatment_to_plot <- "RNAse"
+# Wir machen das einmal für ein Treatment, z.B. "RNase"
+treatment_to_plot <- "RNase"
 
 # Tabelle filtern
 heatmap_data <- full_correlation_results %>%
@@ -312,52 +279,65 @@ pheatmap(heatmap_matrix,
 ```
 
 # Data Analysis
-## Peak Characteristics
 
+## Peak Characteristics 
+- Find number of peaks, all peak positions and corresponding peak heights and store in a df for later use
+- Caluculated on normalised data (average of triplicates)
 ```{r}
+# define treshold for peak and build function for peak detection
 t = max(y) * 0.03 
 find_peaks <- function(y, threshold = t) { 
   peaks <- which(diff(sign(diff(y))) == -2) + 1 #(+1 shifts index back)
-  peaks[y[peaks]>= threshold] # [peaks] = peak intensität <- only those over thresohold
+  peaks[y[peaks]>= threshold] 
 }
 
+# create empty list for results
 peak_results <- list()
 
-
+# for loop over every protein
 for (p in seq_len(nrow(MS_Table_Norm))) {
+  
+  # extract values for Ctrl and RNase
   row_vals <- as.numeric(MS_Table_Norm [p,])
   ctrl_vals <- row_vals[seq(1, 50, by =2)]
   rnase_vals <- row_vals[seq(2, 50, by=2)]
   
+  # create empty list for results
   results_row <- list()
   
-  for (cond in c("Ctrl", "RNAse")) {
+  # for loop working with Ctrl values first, then with RNase values
+  for (cond in c("Ctrl", "RNase")) {
     y <- if (cond == "Ctrl") ctrl_vals else rnase_vals 
     
+    # find peaks with earlier build function, if no peak is detected peak1 is max intensity
     peaks <- find_peaks(y)
     if(length(peaks) == 0) {
       peaks <- which.max(y)
     }
     
+    # store numer of peaks, but with a maximum of 6 
     n_peaks <- min(length(peaks), 6)
     
+    # extract peak height y_peaks and peak position x_peaks
     y_peaks <- y[peaks]
     x_peaks <- x[peaks]
 
+    # store different results in list 
     results_row[[paste0("n_peaks_", cond)]] <- n_peaks
+    
     for(n in seq_len(n_peaks)) {
     results_row[[paste0("peak", n, "_height_", cond)]] <- y_peaks[n]
     results_row[[paste0("peak", n, "_position_", cond)]] <- x_peaks[n]
     }
   }
-  
+  # store protein results in lisr
   peak_results[[p]] <- results_row
 }
 
-
+# befor we can store data in new dataframe, we need to assign NA to all columns that have no values 
 rows_df <- lapply(peak_results, function(x){
   columns <- c("peak1_height", "peak1_position", "peak2_height", "peak2_position", "peak3_height", "peak3_position", "peak4_height", "peak4_position", "peak5_height", "peak5_position", "peak6_height", "peak6_position")
-  for (cond in c("Ctrl", "RNAse")) {
+  for (cond in c("Ctrl", "RNase")) {
     for (c in columns) {
       key <- paste0(c, "_", cond)
       if(!(key %in% names(x))) {
@@ -368,30 +348,118 @@ rows_df <- lapply(peak_results, function(x){
   as.data.frame(x)
 })
 
+# store results in new DataFrame (note: rows_df is a list of dataframes so we need "do.call(r.bind,...)")
 Peak_Data <- do.call(rbind, rows_df)
 rownames(Peak_Data) <- rownames(MS_Table_Norm)
 
-#reorder columns
-order <- c("n_peaks_Ctrl", "n_peaks_RNAse")
+# reorder columns of Peak_Data
+order <- c("n_peaks_Ctrl", "n_peaks_RNase")
 
 for (i in 1:6) {
   order <- c(order, 
                  paste0("peak", i, "_height_Ctrl"),
                  paste0("peak", i, "_position_Ctrl"),
-                 paste0("peak", i, "_height_RNAse"),
-                 paste0("peak", i, "_position_RNAse"))
+                 paste0("peak", i, "_height_RNase"),
+                 paste0("peak", i, "_position_RNase"))
 }
 
-# Reordne den DataFrame
 Peak_Data <- Peak_Data[, order]
+
+# show head of PeakData to check 
 head(Peak_Data)
 ```
 
+# Shift Characteristics
+- Determine shift distance and shift direction for all proteins and store in a df
+- Shift distance is calculated using caluculations of CoM (Center of Mass) for Ctrl and RNAse and caluculating deviation
+- Shift direction is specified as +1, 0 or -1; +1 is a left-shift, -1 a right shift
+- Caluculated on normalised data (average of triplicates)
+```{r}
+# fractions = x
+x <- 1:25
 
---> Idee zur Lösung: CoM verwenden (Center of Mass über alle Fraktionen, hat laut ChatGPT auch Maiwen verwendet und sei methodisch korrekt) --> als Test sollen wir Wilcoxson Rank-Sum-Test verwenden? aber hab ich noch nicht drüber navhgedacht
+# empty vectors for results (with length of number of proteins)
+CoM_Ctrl <- numeric(nrow(MS_Table_Norm))
+CoM_RNase <- numeric(nrow(MS_Table_Norm))
+shift_distance <- numeric(nrow(MS_Table_Norm))
+shift_direction <- numeric(nrow(MS_Table_Norm))
+
+# for loop over every protein
+for (p in seq_len(nrow(MS_Table_Norm))) {
+  
+  # extract values for Ctrl and RNase
+  row_vals <- as.numeric(MS_Table_Norm [p,])
+  ctrl_vals <- row_vals[seq(1, 50, by =2)]
+  rnase_vals <- row_vals[seq(2, 50, by=2)]
+  
+  # calculate CoM, shift distance and shift direction
+  CoM_Ctrl[p] <- sum(ctrl_vals * x) / sum(ctrl_vals)
+  CoM_RNase[p] <- sum(rnase_vals * x) / sum(rnase_vals)
+  shift_distance[p] <- CoM_Ctrl[p] - CoM_RNAse[p] 
+  shift_direction[p] <- sign(Shift_distance[p]) 
+}
+
+# store results in new dataframe 
+Shift_Data <- data.frame(
+  CoM_Ctrl = CoM_Ctrl,
+  CoM_RNase = CoM_RNase,
+  shift_distance = shift_distance,
+  shift_direction = shift_direction,
+  row.names = rownames(MS_Table_Norm))
+
+head(Shift_Data)
+
+#numer of proteins with shift based on average values (just for interesst, delete later)
+sum(Shift_Data$shift_distance > 1, na.rm = TRUE)
+```
+##T-Test 
+### First Normalization of whole MS_Table to 100 
+- We decided to run the statistical test on normalised values, so all replicates need to be normalised to 100
+```{r}
+# Split up all Ctrl and RNAse values and their individual Reps 
+ctrl_cols_t1 <- grep("_Ctrl_Rep1", colnames(MS_Table))
+ctrl_cols_t2 <- grep("_Ctrl_Rep2", colnames(MS_Table))
+ctrl_cols_t3 <- grep("_Ctrl_Rep3", colnames(MS_Table))
+RNase_cols_t1 <- grep("_RNase_Rep1", colnames(MS_Table))
+RNase_cols_t2 <- grep("_RNase_Rep2", colnames(MS_Table))
+RNase_cols_t3 <- grep("_RNase_Rep3", colnames(MS_Table))
+
+# Normalization of each group to 100 
+ctrl_norm_t1 <- MS_Table[, ctrl_cols_t1] / rowSums(MS_Table[, ctrl_cols_t1]) * 100
+ctrl_norm_t2 <- MS_Table[, ctrl_cols_t2] / rowSums(MS_Table[, ctrl_cols_t2]) * 100
+ctrl_norm_t3 <- MS_Table[, ctrl_cols_t3] / rowSums(MS_Table[, ctrl_cols_t3]) * 100
+RNase_norm_t1 <- MS_Table[, RNase_cols_t1] / rowSums(MS_Table[, RNase_cols_t1]) * 100
+RNase_norm_t2 <- MS_Table[, RNase_cols_t2] / rowSums(MS_Table[, RNase_cols_t2]) * 100
+RNase_norm_t3 <- MS_Table[, RNase_cols_t3] / rowSums(MS_Table[, RNase_cols_t3]) * 100
+
+# Combine in one table 
+Norm_Data_for_t <- cbind(ctrl_norm_t1, RNase_norm_t1, ctrl_norm_t2, RNase_norm_t2, ctrl_norm_t3, RNase_norm_t3)
+
+# In gewünschter Reihenfolge ordnen
+fractions <- 1:25
+reps <- 1:3
+conditions <- c("Ctrl", "RNase") 
 
 
-# Center of mass function (CoM) trough all replicates and conditions for all proteins :)
+ordered_names <- c()
+
+for (fraction in fractions) {
+  for (rep in reps) {
+    for (condition in conditions) {
+      name <- paste0("Fraction", fraction, "_", condition, "_Rep", rep)
+      ordered_names <- c(ordered_names, name)
+    }
+  }
+}
+
+Norm_Data_for_t <- Norm_Data_for_t[, ordered_names]
+head(Norm_Data_for_t)
+# Verify the calculation with one example; the row sum should be ~600 (3*Ctrl 100% + 3*RNAse 100%)
+rowSums(Norm_Data_for_t["1433B_HUMAN", ]) 
+```
+
+### Caluclation of Center of mass (CoM) 
+- CoM (Center of mass) values are calculated for all replicates and treatments and stored in df
 ```{r}
 # aufstellen von variablen 
 
@@ -411,9 +479,9 @@ for (cond in conditions) {
 #selecting colums with grep diesen strich verssteh ich nicht "chat sagt "makes one combined pattern with ORs (|) between them, so grep matches any of them."
 
     pattern <- paste0("^Fraction", fractions, "_", cond, "_", rep, "$")
-    cols <- grep(paste(pattern, collapse="|"), colnames(MS_Table_Norm_for_t), value = TRUE)  
+    cols <- grep(paste(pattern, collapse="|"), colnames(Norm_Data_for_t), value = TRUE)  
 
-    subdata <- MS_Table_Norm_for_t[, cols]   
+    subdata <- Norm_Data_for_t[, cols]   
 #storing coloums 
 
     subdata <- subdata[, order(as.numeric(gsub("Fraction(\\d+)_.*", "\\1", cols)))]  #extracts the fraction number from column names.
@@ -432,53 +500,39 @@ for (cond in conditions) {
 #convert list to dataframe
 
 # After the loops have finished:
-com_MS_Table_Norm_for_t <- as.data.frame(results_ttest)   # convert list into data frame
+CoM_Data_for_t <- as.data.frame(results_com)   # convert list into data frame
 
 # Add correct rownames:
-rownames(com_MS_Table_Norm_for_t) <- rownames(MS_Table_Norm_for_t)
+rownames(CoM_Data_for_t) <- rownames(Norm_Data_for_t)
 
 # View the first few rows to check
-head(com_MS_Table_Norm_for_t)
+head(CoM_Data_for_t)
 ```
-
-
-
+### Calculating Shift-Values for T-Test
+- Calculate deviation between CoM of Ctrl and CoM of RNase and store in df for t-test 
 ```{r}
-# Berechnung CoM erstmal beispielhaft über Normalisierte Daten
-# Shift nach Links ist RBP, d.h. Shift_Distance > 1
+Shift_Data_for_t <- data.frame(
+  shift_distance_rep1 = CoM_Data_for_t[, 1] - CoM_Data_for_t[, 4],
+  shift_distance_rep2 = CoM_Data_for_t[, 2] - CoM_Data_for_t[, 5],
+  shift_distance_rep3 = CoM_Data_for_t[, 3] - CoM_Data_for_t[, 6],
+  row.names = rownames(CoM_Data_for_t)
+)
 
-x <- seq(1:25)
-
-CoM_Ctrl <- numeric(nrow(MS_Table_Norm))
-CoM_RNAse <- numeric(nrow(MS_Table_Norm))
-Shift_distance <- numeric(nrow(MS_Table_Norm))
-Shift_direction <- numeric(nrow(MS_Table_Norm))
-
-
-for (p in seq_len(nrow(MS_Table_Norm))) {
-  row_vals <- as.numeric(MS_Table_Norm [p,])
-  ctrl_vals <- row_vals[seq(1, 50, by =2)]
-  rnase_vals <- row_vals[seq(2, 50, by=2)]
-  
-  CoM_Ctrl[p] <- sum(ctrl_vals * x) / sum(ctrl_vals)
-  CoM_RNAse[p] <- sum(rnase_vals * x) / sum(rnase_vals)
-  Shift_distance[p] <- CoM_Ctrl[p] - CoM_RNAse[p] 
-  Shift_direction[p] <- sign(Shift_distance[p]) # -1 would be right shift, 1 would be left shift
-}
-
- Shift_Data_2 <- data.frame(
-  CoM_Ctrl = CoM_Ctrl,
-  CoM_RNAse = CoM_RNAse,
-  Shift_distance = Shift_distance,
-  Shift_direction = Shift_direction,
-  row.names = rownames(MS_Table_Norm))
-
-head(Shift_Data_2)
-sum(Shift_Data_2$Shift_distance > 1, na.rm = TRUE)
+head(Shift_Data_for_t)
 ```
 
 
-# Try and error (BackUP)
+
+
+
+
+
+
+
+
+
+
+# TRY AND ERROR (BackUP)
 ##looking at standart deviation and mean to get an idea 
 
 ```{r}
