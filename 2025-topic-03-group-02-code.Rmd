@@ -395,8 +395,8 @@ for (p in seq_len(nrow(MS_Table_Norm))) {
   # calculate CoM, shift distance and shift direction
   CoM_Ctrl[p] <- sum(ctrl_vals * x) / sum(ctrl_vals)
   CoM_RNase[p] <- sum(rnase_vals * x) / sum(rnase_vals)
-  shift_distance[p] <- CoM_Ctrl[p] - CoM_RNAse[p] 
-  shift_direction[p] <- sign(Shift_distance[p]) 
+  shift_distance[p] <- CoM_Ctrl[p] - CoM_RNase[p] 
+  shift_direction[p] <- sign(shift_distance[p]) 
 }
 
 # store results in new dataframe 
@@ -519,9 +519,70 @@ Shift_Data_for_t <- data.frame(
 )
 
 head(Shift_Data_for_t)
+any(is.na(Shift_Data_for_t))
 ```
 
+### T-Test
 
+```{r}
+# Leere Spalten vorbereiten
+Shift_Data$shapiro_p <- NA
+Shift_Data$normal_distributed <- NA
+Shift_Data$p_value_ttest_filtered <- NA
+Shift_Data$significant_ttest_filtered <- NA
+
+# Über alle Proteine iterieren
+for (protein in rownames(Shift_Data_for_t)) {
+  
+  # Shift-Distanzen extrahieren
+  shift_values <- as.numeric(Shift_Data_for_t[protein, c("shift_distance_rep1", "shift_distance_rep2", "shift_distance_rep3")])
+  
+  # Sicherstellen, dass keine NAs enthalten sind
+  if (all(!is.na(shift_values))) {
+    
+    # Prüfen, ob alle Werte identisch sind (keine Varianz)
+    if (length(unique(shift_values)) == 1) {
+      
+      # Automatisch normalverteilt setzen (weil keine Varianz vorhanden)
+      Shift_Data[protein, "shapiro_p"] <- NA
+      Shift_Data[protein, "normal_distributed"] <- TRUE
+      
+    } else {
+      
+      # Regulärer Shapiro-Wilk-Test
+      shapiro_result <- shapiro.test(shift_values)
+      Shift_Data[protein, "shapiro_p"] <- shapiro_result$p.value
+      Shift_Data[protein, "normal_distributed"] <- shapiro_result$p.value >= 0.05
+    }
+    
+    # Nur wenn normalverteilt, den t-Test durchführen
+    if (Shift_Data[protein, "normal_distributed"] == TRUE) {
+      
+      test_result <- t.test(shift_values, mu = 0, alternative = "two.sided")
+      
+      Shift_Data[protein, "p_value_ttest_filtered"] <- test_result$p.value
+      Shift_Data[protein, "significant_ttest_filtered"] <- ifelse(test_result$p.value < 0.05, TRUE, FALSE)
+      
+    } else {
+      # Wenn nicht normalverteilt: kein t-Test
+      Shift_Data[protein, "p_value_ttest_filtered"] <- NA
+      Shift_Data[protein, "significant_ttest_filtered"] <- NA
+    }
+  }
+}
+
+# Ergebnisse prüfen
+head(Shift_Data)
+
+# Übersicht der Normalverteilungen
+table(Shift_Data$normal_distributed, useNA = "ifany")
+
+# Übersicht der Signifikanz nach t-Test
+table(Shift_Data$significant_ttest_filtered, useNA = "ifany")
+
+
+
+```
 
 
 
