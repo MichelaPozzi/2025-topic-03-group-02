@@ -193,7 +193,7 @@ table(shapiro_results$Is_Normal_Distributed)
 ## Reproducibility Analysis
 - Description nessesary and all code descriptions in english
 ```{r}
-# Leere Liste für Ergebnisse
+# Create empty dataframe for correlation 
 full_correlation_results <- data.frame(
   Treatment = character(),
   Replicate_1 = character(),
@@ -204,14 +204,14 @@ full_correlation_results <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Alle Treatments durchgehen (Ctrl und RNase)
+# iterate over both Ctrl and RNase Treatment 
 for (treatment in c("Ctrl", "RNase")) {
   
-  # Alle Replikat-Fraktions-Kombinationen erzeugen
+  # Create all possible rep-fraction combinations
   combo1 <- expand.grid(Rep = 1:3, Fraction = 1:25)
   combo2 <- expand.grid(Rep = 1:3, Fraction = 1:25)
   
-  # Für jede mögliche Kombination
+  # iterate for every possible combination
   for (i in 1:nrow(combo1)) {
     for (j in 1:nrow(combo2)) {
       
@@ -220,14 +220,14 @@ for (treatment in c("Ctrl", "RNase")) {
       rep2 <- combo2$Rep[j]
       frac2 <- combo2$Fraction[j]
       
-      # Spaltenpositionen finden
+      # Find right column position 
       col1 <- which(replicate == paste0(treatment, "_Rep", rep1) & fraction == paste0("Fraction_", frac1))
       col2 <- which(replicate == paste0(treatment, "_Rep", rep2) & fraction == paste0("Fraction_", frac2))
       
-      # Pearson Korrelation berechnen
+      # calculate Spearmen correlation
       cor_value <- cor(MS_Table[, col1], MS_Table[, col2], method = "spearman", use = "complete.obs")
       
-      # Ergebnis speichern
+      # safe results in dataframe
       full_correlation_results <- rbind(full_correlation_results, data.frame(
         Treatment = treatment,
         Replicate_1 = paste0("Rep", rep1),
@@ -240,33 +240,33 @@ for (treatment in c("Ctrl", "RNase")) {
   }
 }
 
-# Ergebnis anschauen
+
 head(full_correlation_results)
 
 
 library(tidyverse)
 library(pheatmap)
 
-# Erstmal eine Spalte erzeugen für die beiden Achsen
+# create column for each axis 
 full_correlation_results <- full_correlation_results %>%
    mutate(Row = paste0(Replicate_1, "_F", gsub("Fraction_", "", Fraction_1)),
          Col = paste0(Replicate_2, "_F", gsub("Fraction_", "", Fraction_2)))
 
-# Wir machen das einmal für ein Treatment, z.B. "RNase"
+# we select treament RNase for our heatmap
 treatment_to_plot <- "RNase"
 
-# Tabelle filtern
+# filter table for selected treatment 
 heatmap_data <- full_correlation_results %>%
   filter(Treatment == treatment_to_plot) %>%
   select(Row, Col, Spearman_r)
 
-# In Matrix umwandeln
+# convert into matrix 
 heatmap_matrix <- heatmap_data %>%
   pivot_wider(names_from = Col, values_from = Spearman_r, values_fill = NA) %>%
   column_to_rownames("Row") %>%
   as.matrix()
 
-# Jetzt Heatmap zeichnen
+# create heatmap
 pheatmap(heatmap_matrix,
          main = paste("Spearman Correlation Heatmap -", treatment_to_plot),
          cluster_rows = FALSE, 
@@ -525,59 +525,59 @@ any(is.na(Shift_Data_for_t))
 ### T-Test
 
 ```{r}
-# Leere Spalten vorbereiten
+# create empty columns for statistical test results 
 Shift_Data$shapiro_p <- NA
 Shift_Data$normal_distributed <- NA
 Shift_Data$p_value_ttest_filtered <- NA
 Shift_Data$significant_ttest_filtered <- NA
 
-# Über alle Proteine iterieren
+# iterate over all proteins 
 for (protein in rownames(Shift_Data_for_t)) {
   
-  # Shift-Distanzen extrahieren
+  # extract shift distances for each replicate
   shift_values <- as.numeric(Shift_Data_for_t[protein, c("shift_distance_rep1", "shift_distance_rep2", "shift_distance_rep3")])
   
-  # Sicherstellen, dass keine NAs enthalten sind
+  # make sure that no NAs are present
   if (all(!is.na(shift_values))) {
     
-    # Prüfen, ob alle Werte identisch sind (keine Varianz)
+    # check if all values are identical (no variance)
     if (length(unique(shift_values)) == 1) {
       
-      # Automatisch normalverteilt setzen (weil keine Varianz vorhanden)
+      # set normal distribution to TRUE if no variance is present
       Shift_Data[protein, "shapiro_p"] <- NA
       Shift_Data[protein, "normal_distributed"] <- TRUE
       
     } else {
       
-      # Regulärer Shapiro-Wilk-Test
+      # perform Shapiro-Wilk test to check for normal distribution
       shapiro_result <- shapiro.test(shift_values)
       Shift_Data[protein, "shapiro_p"] <- shapiro_result$p.value
       Shift_Data[protein, "normal_distributed"] <- shapiro_result$p.value >= 0.05
     }
     
-    # Nur wenn normalverteilt, den t-Test durchführen
+    # perfrom one-sided t-test if data is normal distributed
     if (Shift_Data[protein, "normal_distributed"] == TRUE) {
       
-      test_result <- t.test(shift_values, mu = 0, alternative = "two.sided")
+      test_result <- t.test(shift_values, mu = 0, alternative = "less")
       
       Shift_Data[protein, "p_value_ttest_filtered"] <- test_result$p.value
       Shift_Data[protein, "significant_ttest_filtered"] <- ifelse(test_result$p.value < 0.05, TRUE, FALSE)
       
     } else {
-      # Wenn nicht normalverteilt: kein t-Test
+      # no t-test applied if data is not normal distributed
       Shift_Data[protein, "p_value_ttest_filtered"] <- NA
       Shift_Data[protein, "significant_ttest_filtered"] <- NA
     }
   }
 }
 
-# Ergebnisse prüfen
+
 head(Shift_Data)
 
-# Übersicht der Normalverteilungen
+# summary of proteins regarding normal distribution
 table(Shift_Data$normal_distributed, useNA = "ifany")
 
-# Übersicht der Signifikanz nach t-Test
+# summary of proteins regarding significant of t-test
 table(Shift_Data$significant_ttest_filtered, useNA = "ifany")
 
 
