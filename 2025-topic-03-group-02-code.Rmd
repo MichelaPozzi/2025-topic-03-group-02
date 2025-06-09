@@ -580,20 +580,54 @@ table(Shift_Data$significant_ttest_filtered, useNA = "ifany")
 
 head(Shift_Data)
 ```
-### Validation of T-Test
+## Validation of T-Test 
+
 ```{r}
+library(glue)
+
 #loading list of uniprot RBPs (HUMAN)
 uniprot_rbps <- read.delim("uniprotkb_RNA_binding_HUMAN_AND_model_o_2025_06_09.tsv", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 #comparison of uniprot RBPs with our T-Test positive RBPs
 known_rbps <- uniprot_rbps$Entry.Name
-our_proteins <- rownames(Shift_Data[Shift_Data$significant_ttest_filtered == TRUE & !is.na(Shift_Data$significant_ttest_filtered), ])
 
-overlap <- intersect(our_proteins, known_rbps)
-length(overlap)
+t_test_positives <- rownames(Shift_Data[Shift_Data$significant_ttest_filtered == TRUE & !is.na(Shift_Data$significant_ttest_filtered), ])
+
+overlap_MS_Table <- intersect(rownames(MS_Table), known_rbps)
+overlap_t_test <- intersect(t_test_positives, known_rbps)
+
+glue("Number of known RBPs in UniProt: {length(known_rbps)}")
+glue("Number of UniProt RBPs tested with R-DeeP: {length(overlap_MS_Table)}")
+glue("Number identified as RBPs (T-Test positive): {length(overlap_t_test)}")
+glue("Hit rate: {round(length(overlap_t_test)/length(overlap_MS_Table)*100, 2)}%")
+
+# validation of test using three listed positive and negative controls
+
+# RBM10, SMN1 and FMR1 have been listed many times as RBPs (Quellen raussuchen)
+pos_controls <- c("RBM10_HUMAN", "SMN_HUMAN", "FMR1_HUMAN")
+pos_df <- data.frame(
+  Protein_Postive_Control = pos_controls,
+  InDataset = pos_controls %in% rownames(MS_Table),
+  TTest = pos_controls %in% t_test_positives)
+
+print(pos_df)
+
+# ATP5F1A, SDHB and COX4I1 are often used as negative controls(Quellen raussuchen)
+neg_controls <- c("ACTB_HUMAN", "SDHB_HUMAN", "COX41_HUMAN")
+neg_df <- data.frame(
+  Protein_Negative_Control = neg_controls,
+  InDataset = neg_controls %in% rownames(MS_Table),
+  TTest = neg_controls %in% t_test_positives)
+
+print(neg_df)
 ```
-
-
+### Looking at specific Proteins
+```{r}
+# RBM10, SMN1 and FMR1 have been listed many times as RBPs (Quellen raussuchen)
+proteins <- c("RBM10_HUMAN", "SMN_HUMAN", "FMR1_HUMAN")
+proteins %in% rownames(MS_Table)
+proteins %in% our_proteins
+```
 
 
 # TRY AND ERROR (BackUP)
