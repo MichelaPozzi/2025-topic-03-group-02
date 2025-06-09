@@ -508,6 +508,7 @@ rownames(CoM_Data_for_t) <- rownames(Norm_Data_for_t)
 # View the first few rows to check
 head(CoM_Data_for_t)
 ```
+
 ### Calculating Shift-Values for T-Test
 - Calculate deviation between CoM of Ctrl and CoM of RNase and store in df for t-test 
 ```{r}
@@ -520,10 +521,10 @@ Shift_Data_for_t <- data.frame(
 
 head(Shift_Data_for_t)
 any(is.na(Shift_Data_for_t))
+sum(is.na(Shift_Data_for_t))
 ```
 
 ### T-Test
-
 ```{r}
 # create empty columns for statistical test results 
 Shift_Data$shapiro_p <- NA
@@ -558,7 +559,7 @@ for (protein in rownames(Shift_Data_for_t)) {
     # perfrom one-sided t-test if data is normal distributed
     if (Shift_Data[protein, "normal_distributed"] == TRUE) {
       
-      test_result <- t.test(shift_values, mu = 0, alternative = "less")
+      test_result <- t.test(shift_values, mu = 1, alternative = "greater")
       
       Shift_Data[protein, "p_value_ttest_filtered"] <- test_result$p.value
       Shift_Data[protein, "significant_ttest_filtered"] <- ifelse(test_result$p.value < 0.05, TRUE, FALSE)
@@ -571,24 +572,26 @@ for (protein in rownames(Shift_Data_for_t)) {
   }
 }
 
-
-head(Shift_Data)
-
 # summary of proteins regarding normal distribution
 table(Shift_Data$normal_distributed, useNA = "ifany")
 
 # summary of proteins regarding significant of t-test
 table(Shift_Data$significant_ttest_filtered, useNA = "ifany")
 
-
-
+head(Shift_Data)
 ```
+### Validation of T-Test
+```{r}
+#loading list of uniprot RBPs (HUMAN)
+uniprot_rbps <- read.delim("uniprotkb_RNA_binding_HUMAN_AND_model_o_2025_06_09.tsv", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
+#comparison of uniprot RBPs with our T-Test positive RBPs
+known_rbps <- uniprot_rbps$Entry.Name
+our_proteins <- rownames(Shift_Data[Shift_Data$significant_ttest_filtered == TRUE & !is.na(Shift_Data$significant_ttest_filtered), ])
 
-
-
-
-
+overlap <- intersect(our_proteins, known_rbps)
+length(overlap)
+```
 
 
 
