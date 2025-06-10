@@ -110,7 +110,7 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 
 ## Plotting a protein with normalised data 
 ```{r}
-# Choos Protein
+# Choose Protein
 protein_of_interest <- "CPSF5_HUMAN" # hier dein Protein einsetzen
 
 # Extract protein data
@@ -623,14 +623,48 @@ neg_df <- data.frame(
 
 print(neg_df)
 ```
-Verbesserungen T-Test?????
+### Analyse Verbesserungen T-Test (FALSE NEGATIVE RATE)?????
+-> learnings so far: Bsp. HTSF1 aufgrund von Normalverteilung FALSE rausgeflogen (klarer Shift erkennbar), LSM8 auch, aber kein Shift (SNRPA)
+--> RPP29_HUMAN zeigt immer Shift über 1 aber anscheinend nicht signifikant genug??? p=0,08
+--> vielleicht ist 1 Fraktion Shift zu viel? 
+--> 36 Proteine sind rausgeflogen weil es nur Daten von RNAse gab / ode nur Ctrl 
+--> 31 Proteine sind rausgeflogen weil sie den Normalverteilungstest nicht bestanden haben
+--> insgesamt könnte man durch veränderung des Normalisierungszeugs bis zu 10 Prozent der nicht identifizierten Proteine mögl. finden
+--> Nur 23 Proteine wären bei alpha = 0.1 dazugekommen
+--> von einem Sample aus 40 nicht identifizierten hätte ich bei 6 einen Shift vermutet, 8 sind aufgrund von Normalisierung / fehlenden Angaben (siehe oben) rausgeflogen, d.h. ich würde sagen 81 Prozent der wirklich getesteten Proteine wurden korrekt als nicht RBPs identifiziert, 19 Prozent der getesteten hätten vlt. RBPs werden sollen (mögl. andere Kriterien) 
+
 ```{r}
 ### alle Uniprot Proteine die nicht gefunden wurden
 not_indentified <- known_rbps[! known_rbps %in% t_test_positives & known_rbps %in% rownames(MS_Table)]
 length(not_indentified)
-head(not_indentified, 20)
-```
 
+sum(is.na(Shift_Data[not_indentified, "shapiro_p"]))
+sum(Shift_Data[not_indentified, "normal_distributed"] == FALSE)
+sum(Shift_Data[not_indentified, "p_value_ttest_filtered"] < 0.1, na.rm = TRUE)
+```
+```{r}
+plot_protein <- function(x) {
+  protein_of_interest <- x 
+  protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
+  ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
+  rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
+  fractions <- 1:25
+
+  plot(fractions, ctrl_values, type="o", pch=16, lty=1, col="green", ylim=range(c(ctrl_values, rnase_values)),
+       xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest)
+       
+  lines(fractions, rnase_values, type="o",pch =16, lty=1, col="red")
+  legend("topright", legend=c("Ctrl", "RNase"), col=c("green", "red"), lty=1, pch=16)
+}
+
+sample_not_identified <- head(not_indentified, 40)
+for (s in sample_not_identified ){
+  plot_protein(s)
+}
+
+print(Shift_Data_for_t[sample_not_identified,])
+print(Shift_Data[sample_not_identified, c("shapiro_p","normal_distributed","p_value_ttest_filtered","significant_ttest_filtered")])
+```
 # TRY AND ERROR (BackUP)
 ##looking at standart deviation and mean to get an idea 
 
