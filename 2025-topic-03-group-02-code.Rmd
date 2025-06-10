@@ -111,7 +111,7 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 ## Plotting a protein with normalised data 
 ```{r}
 # Choos Protein
-protein_of_interest <- "AAAS_HUMAN" # hier dein Protein einsetzen
+protein_of_interest <- "CPSF5_HUMAN" # hier dein Protein einsetzen
 
 # Extract protein data
 protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
@@ -623,14 +623,13 @@ neg_df <- data.frame(
 
 print(neg_df)
 ```
-### Looking at specific Proteins
+Verbesserungen T-Test?????
 ```{r}
-# RBM10, SMN1 and FMR1 have been listed many times as RBPs (Quellen raussuchen)
-proteins <- c("RBM10_HUMAN", "SMN_HUMAN", "FMR1_HUMAN")
-proteins %in% rownames(MS_Table)
-proteins %in% our_proteins
+### alle Uniprot Proteine die nicht gefunden wurden
+not_indentified <- known_rbps[! known_rbps %in% t_test_positives & known_rbps %in% rownames(MS_Table)]
+length(not_indentified)
+head(not_indentified, 20)
 ```
-
 
 # TRY AND ERROR (BackUP)
 ##looking at standart deviation and mean to get an idea 
