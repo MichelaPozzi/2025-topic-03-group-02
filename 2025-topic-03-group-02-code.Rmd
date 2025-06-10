@@ -111,7 +111,7 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 ## Plotting a protein with normalised data 
 ```{r}
 # Choos Protein
-protein_of_interest <- "ABCF1_HUMAN" # hier dein Protein einsetzen
+protein_of_interest <- "AAAS_HUMAN" # hier dein Protein einsetzen
 
 # Extract protein data
 protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
@@ -284,9 +284,11 @@ pheatmap(heatmap_matrix,
 - Find number of peaks, all peak positions and corresponding peak heights and store in a df for later use
 - Caluculated on normalised data (average of triplicates)
 ```{r}
+# fractions = x
+x <- 1:25
+
 # define treshold for peak and build function for peak detection
-t = max(y) * 0.03 
-find_peaks <- function(y, threshold = t) { 
+find_peaks <- function(y, threshold = max(y) * 0.03) { 
   peaks <- which(diff(sign(diff(y))) == -2) + 1 #(+1 shifts index back)
   peaks[y[peaks]>= threshold] 
 }
