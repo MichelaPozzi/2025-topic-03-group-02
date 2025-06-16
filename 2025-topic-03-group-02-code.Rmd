@@ -978,11 +978,48 @@ png("C://Users//Sofi//Desktop//4 Semester//Bioinfo_project//Downloadsdendrogram_
 plot(hc_ward, labels = FALSE, main = "Ward's Method (Large Output)")
 dev.off()
 
+# run k means in order to see how it looks at different number of clusters
+
+# Convert to matrix
+K <- as.matrix(clean2_merged_filterd_mitosis)
+# K-means clustering
+k <- 3                    #number of clusters 
+set.seed(42)
+kmeans_result <- kmeans(K, centers = k) # here i put in my data 
+
+# Reduce to 2D with PCA
+pca_results <- prcomp(K, scale. = TRUE)
+K_2D <- pca_results$x[, 1:2]
+
+# Plot clusters
+plot(K_2D, col = kmeans_result$cluster, pch = 19,
+     main = "K-means Clustering (PCA-reduced 2D)",
+     xlab = "PC1", ylab = "PC2")
+legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 19)
+
+
 ```
+# only k means so i can look at it better
+```{r}
+# Convert to matrix
+K <- as.matrix(clean2_merged_filterd_mitosis)
+# K-means clustering
+k <- 50                   #number of clusters 
+set.seed(42)
+kmeans_result <- kmeans(K, centers = k) # here i put in my data 
+
+# Reduce to 2D with PCA
+pca_results <- prcomp(K, scale. = TRUE)
+K_2D <- pca_results$x[, 1:2]
+
+# Plot clusters
+plot(K_2D, col = kmeans_result$cluster, pch = 19,
+     main = "K-means Clustering (PCA-reduced 2D)",
+     xlab = "PC1", ylab = "PC2")
+legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 19)
 
 
-
-
+```
 
 # TRY AND ERROR (BackUP)
 ##looking at standart deviation and mean to get an idea 
@@ -1341,9 +1378,9 @@ K <- as.matrix(K)        # Ensure it’s still a numeric matrix
 K <- as.matrix(K)
 
 # K-means clustering
-k <- 3
+k <- 3                    #number of clusters 
 set.seed(42)
-kmeans_result <- kmeans(K, centers = k)
+kmeans_result <- kmeans(K, centers = k) # here i put in my data 
 
 # Reduce to 2D with PCA
 pca_results <- prcomp(K, scale. = TRUE)
