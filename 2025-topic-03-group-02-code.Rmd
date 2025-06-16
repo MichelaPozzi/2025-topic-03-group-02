@@ -697,7 +697,7 @@ plot_protein <- function(x) {
   legend("topright", legend=c("Ctrl", "RNase"), col=c("green", "red"), lty=1, pch=16)
 }
 
-sample_not_identified <- head(not_indentified, 40)
+sample_not_identified <- head( not_indentified, 40)
 for (s in sample_not_identified ){
   plot_protein(s)
 }
@@ -922,6 +922,68 @@ for (r in sample_RBPs_Mitosis){
   plot_protein_NS(r)
 }
 ```
+#Clustering to find posible RBP complexes in our RBPs in Mitosis
+
+```{r}
+#from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis 
+
+# 1) Filter only the RBPs relevant in Mitosis 
+
+filtered_shift_Mitosis <- Shift_Data[rownames(Shift_Data) %in% RBPs_Mitosis, ]
+
+filtered_peak_Mitosis <- Peak_Data[rownames(Peak_Data) %in% RBPs_Mitosis, ]
+
+# 2) Selecting only the interesting coloumns creating comon dataframe
+
+merged_filterd_mitosis <- cbind(filtered_shift_Mitosis[, c("CoM_Ctrl", "CoM_RNase", "shift_distance")], filtered_peak_Mitosis[, c("n_peaks_Ctrl", "n_peaks_RNase","peak1_height_Ctrl", "peak1_height_RNase", "peak2_height_Ctrl", "peak2_height_RNase", "peak1_position_Ctrl", "peak1_position_RNase" , "peak2_position_Ctrl", "peak2_position_RNase" )])
+
+head(merged_filterd_mitosis)
+
+# 3) clean data for further steps 
+
+# Remove rows with NA values
+
+clean_merged_filterd_mitosis <- na.omit(merged_filterd_mitosis)
+
+# Optionally remove constant columns
+
+clean2_merged_filterd_mitosis <- clean_merged_filterd_mitosis[, apply(clean_merged_filterd_mitosis, 2, function(col) sd(col, na.rm = TRUE) != 0)]
+
+# 4) do hirarchical clustering in order to determin a good k value (number of clusters)
+
+
+clean2_merged_filterd_mitosis <- as.matrix(clean2_merged_filterd_mitosis)   # Convert to numeric matrix if it's not already
+
+# Distance matrix (Euclidean)
+dist_matrix <- dist(clean2_merged_filterd_mitosis)
+
+# Hierarchical clustering with different linkage methods
+hc_ward <- hclust(dist_matrix, method = "ward.D2")
+#hc_average <- hclust(dist_matrix, method = "average")
+#hc_complete <- hclust(dist_matrix, method = "complete")
+#hc_single <- hclust(dist_matrix, method = "single")
+
+# Plot all 4 dendrograms
+par(mfrow = c(2, 2))
+#plot(hc_ward, main = "Ward's Method")
+#plot(hc_average, main = "Average Linkage")
+#plot(hc_complete, main = "Complete Linkage")
+#plot(hc_single, main = "Single Linkage")
+
+plot(hc_ward, labels = FALSE, main = "Ward's Method (no labels)")
+
+# extra )image to save maybe for poster 
+
+png("C://Users//Sofi//Desktop//4 Semester//Bioinfo_project//Downloadsdendrogram_large.png", width = 1200, height = 800)
+plot(hc_ward, labels = FALSE, main = "Ward's Method (Large Output)")
+dev.off()
+
+```
+
+
+
+
+
 # TRY AND ERROR (BackUP)
 ##looking at standart deviation and mean to get an idea 
 
@@ -1257,16 +1319,19 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = Significant)) +
 
 
 
-# ok people ich bin bored also mach ich jetzt noch kmeans clustering 
+# ok people ich bin bored also mach ich jetzt noch kmeans clustering nur auf RBPs in mitosis 
 ```{r}
+# Filter only the RBPs relevant in Mitosis 
+filtered_data_shift <- Shift_Data[rownames(Shift_Data) %in% RBPs_Mitosis, ]
+
 # Load your dataset (CSV or kmeans frame)
-kmeans <- Shift_Data # Replace with your file or data frame
+kmeans <- filtered_data_shift # Replace with your file or data frame
 
 
 # Select 4 specific columns by name or position
-# Option A: by column names
 
-K <- kmeans[, c("CoM_Ctrl", "CoM_RNase", "shift_distance", "shift_direction")]  # Replace with column names
+
+K <- kmeans[, c("CoM_Ctrl", "CoM_RNase", "shift_distance")]  # Replace with column names
 
 K <- na.omit(K)          # Remove rows with any NA
 K <- as.matrix(K)        # Ensure it’s still a numeric matrix
