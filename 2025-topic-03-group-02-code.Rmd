@@ -1070,7 +1070,8 @@ protein_mass_df <- data.frame(
   UniProtAccession = accession_ids,
   MolecularWeight_kDa = masses_vec / 1000
 )
-
+head(protein_mass_df)
+sum(is.na(protein_mass_df$MolecularWeight_kDa))
 ```
 
 
