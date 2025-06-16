@@ -1066,8 +1066,26 @@ MS_log <- log2(MS_Table_Averages + 1)
 # Row-wise z-score scaling: center and scale each protein across all samples (fractions)
 MS_scaled <- t(scale(t(MS_log)))
 
+rownames(MS_scaled) <- rownames(MS_Table_Averages)
+
 # Optional: check a few rows
 head(round(MS_scaled, 2))
+
+#filter proteins with low variance 
+# 1. Compute variance across proteins (handle NAs)
+var_filter <- apply(MS_scaled, 1, var, na.rm = TRUE)
+
+# 2. Compute the 75th percentile of variance, handling NAs in var_filter
+threshold <- quantile(var_filter, 0.75, na.rm = TRUE)
+
+# 3. Filter for high-variance proteins
+MS_highvar <- MS_scaled[var_filter > threshold, ]
+
+# If any are missing, fix them by assigning unique names
+
+rownames(MS_highvar) <- make.names(rownames(MS_highvar), unique = TRUE)
+
+
 
                          # Linas code zu Peak characterization just applyed to my code 
 
@@ -1086,10 +1104,10 @@ find_peaks <- function(y, threshold = max(y) * 0.03) {
 peak_results <- list()
 
 # for loop over every protein
-for (p in seq_len(nrow(MS_scaled))) {
+for (p in seq_len(nrow(MS_highvar))) {
   
   # extract values for Ctrl and RNase
-  row_vals <- as.numeric(MS_scaled [p,])
+  row_vals <- as.numeric(MS_highvar [p,])
   ctrl_vals <- row_vals[seq(1, 50, by =2)]
   rnase_vals <- row_vals[seq(2, 50, by=2)]
   
@@ -1141,7 +1159,7 @@ rows_df <- lapply(peak_results, function(x){
 
 # store results in new DataFrame (note: rows_df is a list of dataframes so we need "do.call(r.bind,...)")
 Peak_Data2 <- do.call(rbind, rows_df)
-rownames(Peak_Data2) <- rownames(MS_scaled)
+rownames(Peak_Data2) <- rownames(MS_highvar)
 
 # reorder columns of Peak_Data2
 order <- c("n_peaks_Ctrl", "n_peaks_RNase")
@@ -1170,6 +1188,7 @@ colnames(Peak_Data2)
 # Load required package
 library(ggplot2)
 
+
 # Assume your data is in a data frame called 'df'
 # Rows = proteins, Columns = the 26 features you mentioned
 # First, remove rows with any NA values
@@ -1189,18 +1208,89 @@ pc_scores$Protein <- rownames(pc_scores)
 
 # Create a new column that marks whether the protein is in t_test_positives (taken from further steps of the analysis)
 
-pc_scores$Significant <- ifelse(pc_scores$Protein %in% t_test_positives, "Yes", "No")
+pc_scores$Significant <- ifelse(pc_scores$Protein %in% t_test_positives, "RBPs", "No")
 
 # Plot the PCA
 ggplot(pc_scores, aes(x = PC1, y = PC2, color = Significant)) +
   geom_point(alpha = 0.7, size = 1.5) +
-  scale_color_manual(values = c("Yes" = "red", "No" = "black")) +
+  scale_color_manual(values = c("RBPs" = "red", "No" = "black")) +
   theme_minimal() +
   labs(title = "PCA of Protein Features (highlighting significant proteins)",
        x = "PC1", y = "PC2", color = "Significant")
 
 
 ```
+
+# lets run it on shift charachteristics 
+
+
+```{r}
+
+# Select the 4 columns to use for PCA
+pca_input <- Shift_Data[, c("CoM_Ctrl", "CoM_RNase", "shift_distance", "shift_direction")]
+
+# Remove rows with NA values
+pca_input_clean <- na.omit(pca_input)
+
+# Optionally remove constant columns
+pca_input_clean <- pca_input_clean[, apply(pca_input_clean, 2, function(col) sd(col, na.rm = TRUE) != 0)]
+
+# Run PCA
+pca_result <- prcomp(pca_input_clean, center = TRUE, scale. = TRUE)
+
+# Extract scores and add protein names
+pc_scores <- as.data.frame(pca_result$x[, 1:2])
+pc_scores$Protein <- rownames(pca_input_clean)
+
+# Mark significant proteins
+pc_scores$Significant <- ifelse(pc_scores$Protein %in% t_test_positives, "RBPs", "No")
+
+# Plot
+ggplot(pc_scores, aes(x = PC1, y = PC2, color = Significant)) +
+  geom_point(alpha = 0.7, size = 1.5) +
+  scale_color_manual(values = c("RBPs" = "red", "No" = "black")) +
+  theme_minimal() +
+  labs(title = "PCA on shift distance", x = "PC1", y = "PC2", color = "Significant")
+
+```
+
+
+
+
+# ok people ich bin bored also mach ich jetzt noch kmeans clustering 
+```{r}
+# Load your dataset (CSV or kmeans frame)
+kmeans <- Shift_Data # Replace with your file or data frame
+
+
+# Select 4 specific columns by name or position
+# Option A: by column names
+
+K <- kmeans[, c("CoM_Ctrl", "CoM_RNase", "shift_distance", "shift_direction")]  # Replace with column names
+
+K <- na.omit(K)          # Remove rows with any NA
+K <- as.matrix(K)        # Ensure it’s still a numeric matrix
+
+
+# Convert to matrix
+K <- as.matrix(K)
+
+# K-means clustering
+k <- 3
+set.seed(42)
+kmeans_result <- kmeans(K, centers = k)
+
+# Reduce to 2D with PCA
+pca_results <- prcomp(K, scale. = TRUE)
+K_2D <- pca_results$x[, 1:2]
+
+# Plot clusters
+plot(K_2D, col = kmeans_result$cluster, pch = 19,
+     main = "K-means Clustering (PCA-reduced 2D)",
+     xlab = "PC1", ylab = "PC2")
+legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 19)
+
+
 
 
 
