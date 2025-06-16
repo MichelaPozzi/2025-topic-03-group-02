@@ -370,7 +370,6 @@ Peak_Data <- Peak_Data[, order]
 # show head of PeakData to check 
 head(Peak_Data)
 
-colnames(Peak_Data)
 ```
 #doing a PCa analysis in order to look at the distribution of RBPS => could be applyed to selected RBPs from mytosis
 
@@ -706,7 +705,7 @@ print(Shift_Data_for_t[sample_not_identified,])
 print(Shift_Data[sample_not_identified, c("shapiro_p","normal_distributed","p_value_ttest_filtered","significant_ttest_filtered")])
 ```
 
-## T-Test for non-synchronised HELA Cells => ich bin hier etwas verwirrt also ist das einfach unsere pipeline copiert? 
+## T-Test for non-synchronised HELA Cells (Copied and adjusted Pipeline)
 ```{r}
 #loading Data
 MS_Table_NS <- read.table("RDeeP_HeLa_NS.csv", header = TRUE, row.names = 1, sep = ";")
@@ -922,6 +921,7 @@ for (r in sample_RBPs_Mitosis){
   plot_protein_NS(r)
 }
 ```
+
 #Clustering to find posible RBP complexes in our RBPs in Mitosis
 
 ```{r}
@@ -1020,6 +1020,59 @@ legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 19)
 
 
 ```
+
+# Linear Regression Analysis
+## Get official molecular weight from Uniprot (vorsicht Leute Code läuft 35 Min!!!... laufen Lassen und Kaffe holen) :)
+```{r}
+library(httr)
+library(jsonlite)
+library(pbapply)  # für Fortschrittsbalken bei langen Listen
+
+# Function für accession ids aus Uniprot
+get_accession_from_entryname <- function(entry_name) {
+  url <- paste0("https://rest.uniprot.org/uniprotkb/search?query=", entry_name, "&fields=accession&format=json&size=1")
+  res <- try(GET(url), silent = TRUE)
+  if (inherits(res, "try-error") || res$status_code != 200) {
+    return(NA)
+  }
+  txt <- content(res, "text", encoding = "UTF-8")
+  data <- fromJSON(txt, simplifyVector = FALSE)
+  if (length(data$results) == 0) {
+    return(NA)}
+  else{
+  return(data$results[[1]]$primaryAccession)}
+    
+}
+# Funktion zum Abrufen der Masse für eine UniProt-ID
+get_uniprot_mass <- function(accession_ids) {
+  url <- paste0("https://rest.uniprot.org/uniprotkb/", accession_ids, ".json")
+  res <- try(GET(url), silent = TRUE)
+  if (inherits(res, "try-error") || res$status_code != 200) {
+    return(NA)
+  }
+  data <- fromJSON(content(res, "text", encoding = "UTF-8"))
+  return(data$sequence$molWeight)
+}
+
+entry_names <- rownames(MS_Table)
+accession_ids <- pbsapply(entry_names, get_accession_from_entryname)
+masses <- pbsapply(accession_ids, get_uniprot_mass)
+
+#Wichtig, da wir massen unlisten müssen, und 5 Proteine als NA gespeichert werden müssen
+masses_vec <- rep(NA_real_, length(accession_ids))
+names(masses_vec) <- accession_ids
+valid_idx <- which(!sapply(masses, is.null))
+masses_vec[valid_idx] <- as.numeric(unlist(masses[valid_idx]))
+
+# DataFrame bauen
+protein_mass_df <- data.frame(
+  EntryName = entry_names,
+  UniProtAccession = accession_ids,
+  MolecularWeight_kDa = masses_vec / 1000
+)
+
+```
+
 
 # TRY AND ERROR (BackUP)
 ##looking at standart deviation and mean to get an idea 
