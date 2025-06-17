@@ -110,23 +110,21 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 
 ## Plotting a protein with normalised data 
 ```{r}
-# Choose Protein
-protein_of_interest <- "CPSF5_HUMAN" # hier dein Protein einsetzen
+plot_protein <- function(x) {
+  protein_of_interest <- x 
+  protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
+  ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
+  rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
+  fractions <- 1:25
 
-# Extract protein data
-protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
+  plot(fractions, ctrl_values, type="o", pch=16, lty=1, col="green", ylim=range(c(ctrl_values, rnase_values)),
+       xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest)
+       
+  lines(fractions, rnase_values, type="o",pch =16, lty=1, col="red")
+  legend("topright", legend=c("Ctrl", "RNase"), col=c("green", "red"), lty=1, pch=16)
+}
 
-# Store Ctrl and RNase Values 
-ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
-rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
-
-fractions <- 1:25
-
-# Plot
-plot(fractions, ctrl_values, type="o", pch=16, lty=1, col="green", ylim=range(c(ctrl_values, rnase_values)),
-     xlab="Fraction", ylab="Normalized Intensity", main=protein_of_interest)
-lines(fractions, rnase_values, type="o",pch =16, lty=1, col="red")
-legend("topright", legend=c("Ctrl", "RNase"), col=c("green", "red"), lty=1, pch=16)
+plot_protein("CPSF5_HUMAN") #fill in protein that you wanna see
 ```
 
 ## Test for Normal Distribution (requirement for t-test) 
@@ -287,7 +285,7 @@ pheatmap(heatmap_matrix,
 # fractions = x
 x <- 1:25
 
-# define treshold for peak and build function for peak detection
+# define treshold for peak and build function for peak detection (carefull, dosen't detect peaks in  1st and 25th fraction)
 find_peaks <- function(y, threshold = max(y) * 0.03) { 
   peaks <- which(diff(sign(diff(y))) == -2) + 1 #(+1 shifts index back)
   peaks[y[peaks]>= threshold] 
@@ -309,13 +307,25 @@ for (p in seq_len(nrow(MS_Table_Norm))) {
   
   # for loop working with Ctrl values first, then with RNase values
   for (cond in c("Ctrl", "RNase")) {
-    y <- if (cond == "Ctrl") ctrl_vals else rnase_vals 
+    y <- if (cond == "Ctrl") ctrl_vals else rnase_vals
+    threshold <- max(y, na.rm = TRUE) * 0.03
     
-    # find peaks with earlier build function, if no peak is detected peak1 is max intensity
+    #find peaks with earlier build function, if no peak is detected peak1 is max intensity
     peaks <- find_peaks(y)
+    
+    # if empty, define empty numeric to avoid undefined variable
+    if (length(peaks) == 0) {
+      peaks <- numeric(0)
+      }
+    if (!is.na(y[1]) && !is.na(y[2]) && y[1] > y[2] && y[1] >= threshold) {
+      peaks <- c(1, peaks)
+      }
+    if (!is.na(y[25]) && !is.na(y[24]) && y[25] > y[24] && y[25] >= threshold) {
+      peaks <- c(peaks, 25)
+      }
     if(length(peaks) == 0) {
       peaks <- which.max(y)
-    }
+      }
     
     # store numer of peaks, but with a maximum of 6 
     n_peaks <- min(length(peaks), 6)
@@ -372,7 +382,6 @@ head(Peak_Data)
 
 ```
 #doing a PCa analysis in order to look at the distribution of RBPS => could be applyed to selected RBPs from mytosis
-
 
 ```{r}
 # Load required package
@@ -662,6 +671,7 @@ neg_df <- data.frame(
 
 print(neg_df)
 ```
+
 ### Analyse Verbesserungen T-Test (FALSE NEGATIVE RATE)?????
 -> learnings so far: Bsp. HTSF1 aufgrund von Normalverteilung FALSE rausgeflogen (klarer Shift erkennbar), LSM8 auch, aber kein Shift (SNRPA)
 --> RPP29_HUMAN zeigt immer Shift über 1 aber anscheinend nicht signifikant genug??? p=0,08
@@ -682,20 +692,6 @@ sum(Shift_Data[not_indentified, "normal_distributed"] == FALSE)
 sum(Shift_Data[not_indentified, "p_value_ttest_filtered"] < 0.1, na.rm = TRUE)
 ```
 ```{r}
-plot_protein <- function(x) {
-  protein_of_interest <- x 
-  protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
-  ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
-  rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
-  fractions <- 1:25
-
-  plot(fractions, ctrl_values, type="o", pch=16, lty=1, col="green", ylim=range(c(ctrl_values, rnase_values)),
-       xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest)
-       
-  lines(fractions, rnase_values, type="o",pch =16, lty=1, col="red")
-  legend("topright", legend=c("Ctrl", "RNase"), col=c("green", "red"), lty=1, pch=16)
-}
-
 sample_not_identified <- head( not_indentified, 40)
 for (s in sample_not_identified ){
   plot_protein(s)
@@ -704,7 +700,25 @@ for (s in sample_not_identified ){
 print(Shift_Data_for_t[sample_not_identified,])
 print(Shift_Data[sample_not_identified, c("shapiro_p","normal_distributed","p_value_ttest_filtered","significant_ttest_filtered")])
 ```
+--> Learnings: ich hätte nur 2 von 40 Proteinen der t_test_postives (sample) nicht als RBP eingeordnet (5% false positives, wie alpha)
+--> von allen t_test_postives mit einem p_value über 0.045 (insg. 18) hätte ich trotzdem nur 4 nicht als RBP eingeordnet
+```{r}
+sample_t_test_positives <-head(t_test_positives,40)
+for (s in sample_t_test_positives){
+  plot_protein(s)
+}
 
+t_test_positives_critical_p_value <- rownames(
+  Shift_Data[
+    Shift_Data$significant_ttest_filtered == TRUE &
+    !is.na(Shift_Data$significant_ttest_filtered) &
+    Shift_Data$p_value_ttest_filtered > 0.045,
+  ]
+)
+for (s in t_test_positives_critical_p_value){
+  plot_protein(s)
+}
+```
 ## T-Test for non-synchronised HELA Cells (Copied and adjusted Pipeline)
 ```{r}
 #loading Data
@@ -903,6 +917,7 @@ table(Shift_Data_NS$significant_ttest_filtered, useNA = "ifany")
 
 #Comparison of Proteins found as RBP in Mitosis vs. in NS_Hela 
 ```{r}
+# View Numbers
 t_test_positives_NS <- rownames(Shift_Data_NS[Shift_Data_NS$significant_ttest_filtered == TRUE & !is.na(Shift_Data_NS$significant_ttest_filtered), ])
 
 overlap_analysis <- intersect(rownames(MS_Table_NS), rownames(MS_Table))
@@ -915,12 +930,48 @@ glue("Number of Proteins analysed in both samples: {length(overlap_analysis)}")
 glue("Number of RBPs found in both samples: {length(overlap_t_test_positivs)}")
 glue("Number RBPs found only in Mitosis: {length(RBPs_Mitosis)}")
 
+# View Examples
 sample_RBPs_Mitosis <- head(RBPs_Mitosis,20)
 for (r in sample_RBPs_Mitosis){
   plot_protein(r)
   plot_protein_NS(r)
 }
+
+# View Clustering
+
+# build new dataframe with clustering Data containing only proteins of both samples
+cols_to_extract <- c("CoM_Ctrl", "CoM_RNase", "shift_distance", "shift_direction", "p_value_ttest_filtered", "significant_ttest_filtered")
+
+subset_data_S <- Shift_Data[overlap_analysis, cols_to_extract]
+subset_data_NS <- Shift_Data_NS[overlap_analysis, cols_to_extract]
+colnames(subset_data_S) <- paste0(colnames(subset_data_S), "_mitosis")
+colnames(subset_data_NS) <- paste0(colnames(subset_data_NS), "_nonSync")
+
+Shift_Data_Combined <- cbind(subset_data_S,subset_data_NS)
+head(Shift_Data_Combined)
+
+#scatterplot shift_distance
+ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`, y = `shift_distance_nonSync`, color = case_when(
+  !`significant_ttest_filtered_mitosis` & !`significant_ttest_filtered_nonSync` ~ "No significant RBPs",
+  `significant_ttest_filtered_mitosis` & !`significant_ttest_filtered_nonSync` ~ "RBPs only active in Mitosis",
+  !`significant_ttest_filtered_mitosis` & `significant_ttest_filtered_nonSync` ~ "RBPs not active in Mitosis",
+    TRUE ~ "RBPs always active"
+  ))) +
+  geom_point(alpha = 0.6) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  scale_color_manual(name = "Significance as RBP",values = c(
+    "No significant RBPs" = "grey80",
+    "RBPs not active in Mitosis" = "gray30",
+    "RBPs always active" = "lightcoral",
+    "RBPs only active in Mitosis" = "darkred"
+  ))+
+  labs(title = "Shift Distance: Mitosis vs. Non-Synchronized",
+       x = "Shift Distance (Mitosis)",
+       y = "Shift Distance (Non-Synchronized)") +
+  theme_minimal()
 ```
+
+
 
 #Clustering to find posible RBP complexes in our RBPs in Mitosis
 
@@ -1075,7 +1126,7 @@ sum(is.na(protein_mass_df$MolecularWeight_kDa))
 # Correlation Analysis Molekular Weight with Maximum Peak Position
 --> So ist da einfach keine wirklcihe Correlation, leichte Correlationen leigt aber aher an Masse als an tatsächlihcer COrrelation, und lineare Regressionsmodelle sind auch mist
 --> Wir haben ein Problem,die meisten Proteine liegen auch in gegenwart von RNAse noch als Komplex /Quartärstruktur vor (unabhängig von RNAse) Ich hab die monomergewichte und man weis ja garnicht, welche Proteine wir miteinandern doch ncoh in Komplexen hängen
---> vlt. mit menschlichen Proteine die sicher Monomere sind ein Model bauen und dann dadurch irgendwie gucken, ob Proteine als Komplex vorliegen oder nicht???
+--> vlt. mit menschlichen Proteine die sicher Monomere sind ein Model bauen und dann dadurch irgendwie gucken, ob Proteine als Komplex vorliegen oder nicht??
 ```{r}
 # irgendwie die Peak_Position von dem Peak mit max peak height bei RNase für jedes Portein raussuchen
 
