@@ -1066,14 +1066,71 @@ masses_vec[valid_idx] <- as.numeric(unlist(masses[valid_idx]))
 
 # DataFrame bauen
 protein_mass_df <- data.frame(
-  EntryName = entry_names,
   UniProtAccession = accession_ids,
   MolecularWeight_kDa = masses_vec / 1000
 )
 head(protein_mass_df)
 sum(is.na(protein_mass_df$MolecularWeight_kDa))
 ```
+# Correlation Analysis Molekular Weight with Maximum Peak Position
+--> So ist da einfach keine wirklcihe Correlation, leichte Correlationen leigt aber aher an Masse als an tatsächlihcer COrrelation, und lineare Regressionsmodelle sind auch mist
+--> Wir haben ein Problem,die meisten Proteine liegen auch in gegenwart von RNAse noch als Komplex /Quartärstruktur vor (unabhängig von RNAse) Ich hab die monomergewichte und man weis ja garnicht, welche Proteine wir miteinandern doch ncoh in Komplexen hängen
+--> vlt. mit menschlichen Proteine die sicher Monomere sind ein Model bauen und dann dadurch irgendwie gucken, ob Proteine als Komplex vorliegen oder nicht???
+```{r}
+# irgendwie die Peak_Position von dem Peak mit max peak height bei RNase für jedes Portein raussuchen
 
+max_peak_positions <- numeric(nrow(Peak_Data))
+
+for (p in seq_len(nrow(Peak_Data))) {
+  p_data <- Peak_Data [p,]
+  peak_heights <- as.numeric(p_data[, paste0("peak", 1:6, "_height_RNase")])
+  peak_positions <- as.numeric(p_data[, paste0("peak", 1:6, "_position_RNase")])
+  
+  if (all(is.na(peak_heights))) {
+    max_peak_positions[p] <- NA
+  } else {
+    max_idx <- which.max(peak_heights)
+    max_peak_positions[p] <- peak_positions[max_idx]
+  }
+  
+}  
+
+Protein_Data_for_LR <- data.frame(max_peak_position_RNase = max_peak_positions)
+rownames(Protein_Data_for_LR) <- rownames(Peak_Data)
+
+# Anfügen der Molecular Weight
+Protein_Data_for_LR$MolecularWeight_kDa <- protein_mass_df$MolecularWeight_kDa
+Protein_Data_for_LR$CoM_RNase <- Shift_Data$CoM_RNase
+
+# Plotting
+library(ggplot2)
+library(dplyr)
+ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_peak_position_RNase, y = MolecularWeight_kDa)) +
+  geom_point() +
+  labs(x = "Peak Position", y = "Molecular Weight (kDa)",
+    title = "Molecular Weight vs. Peak Position ")
+
+ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = CoM_RNase, y = MolecularWeight_kDa)) +
+  geom_point() +
+  labs(x = "CoM_RNase", y = "Molecular Weight (kDa)",
+    title = "Molecular Weight vs. CoM_RNase")
+
+# Correlation Tests
+cor.test(Protein_Data_for_LR$max_peak_position_RNase,
+         Protein_Data_for_LR$MolecularWeight_kDa,
+         method = "spearman", use = "complete.obs")
+
+cor.test(Protein_Data_for_LR$CoM_RNase,
+         Protein_Data_for_LR$MolecularWeight_kDa,
+         method = "spearman", use = "complete.obs")
+
+# Linerare Regressionsanalyse
+lm_model_peak_position <- lm(MolecularWeight_kDa ~ max_peak_position_RNase, data = Protein_Data_for_LR)
+summary(lm_model_peak_position)
+
+lm_model_CoM <- lm(MolecularWeight_kDa ~ CoM_RNase, data = Protein_Data_for_LR)
+summary(lm_model_CoM)
+```
 
 # TRY AND ERROR (BackUP)
 ##looking at standart deviation and mean to get an idea 
