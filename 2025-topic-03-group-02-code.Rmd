@@ -325,10 +325,6 @@ head(Peak_Data)
 
 
 #doing a PCa analysis in order to look at the distribution of RBPS => could be applyed to selected RBPs from mytosis
-<<<<<<< HEAD
-
-=======
->>>>>>> 045e8e285feb705a3526f3e858800bdf2278bd90
 ```{r}
 # Load required package
 library(ggplot2)
