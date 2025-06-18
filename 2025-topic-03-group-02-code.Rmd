@@ -582,9 +582,9 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
     TRUE ~ "No significant Shift"
   ))) +
   geom_point(alpha = 0.6) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray20") +
   scale_color_manual(name = "Significance as RBP",values = c(
-    "Significant Shift / RBPs" = "darkred",
+    "Significant Left Shift / RBPs" = "darkred",
     "No significant Shift" = "gray70"
   ))+
   labs(title = "Center of Mass in Ctrl and RNase: T-Test positives",
