@@ -913,6 +913,8 @@ Shift_Data_Combined <- cbind(subset_data_S,subset_data_NS)
 head(Shift_Data_Combined)
 
 #scatterplot shift_distance
+library(ggplot2)
+library(dplyr)
 ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`, y = `shift_distance_nonSync`, color = case_when(
   !`significant_ttest_filtered_mitosis` & !`significant_ttest_filtered_nonSync` ~ "No significant RBPs",
   `significant_ttest_filtered_mitosis` & !`significant_ttest_filtered_nonSync` ~ "RBPs only active in Mitosis",
