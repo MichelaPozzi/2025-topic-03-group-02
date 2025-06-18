@@ -681,6 +681,7 @@ for (s in t_test_positives_critical_p_value){
   plot_protein(s)
 }
 ```
+
 ## T-Test for non-synchronised HELA Cells (Copied and adjusted Pipeline)
 ```{r}
 #loading Data
@@ -1583,4 +1584,97 @@ head(shapiro_results)
 
 # Übersicht wie viele normalverteilt
 table(shapiro_results$Is_Normal_Distributed)
+```
+
+
+# other clustering method 
+
+```{r}
+#from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis 
+
+# 1) Filter only the RBPs relevant in Mitosis 
+
+filtered_shift_Mitosis <- Shift_Data[rownames(Shift_Data) %in% RBPs_Mitosis, ]
+
+filtered_peak_Mitosis <- Peak_Data[rownames(Peak_Data) %in% RBPs_Mitosis, ]
+
+# 2) Selecting only the interesting coloumns creating comon dataframe
+
+merged_filterd_mitosis <- cbind(filtered_shift_Mitosis[, c("CoM_Ctrl", "shift_distance")], filtered_peak_Mitosis[, c("n_peaks_Ctrl", "peak1_height_Ctrl", "peak2_height_Ctrl", "peak1_position_Ctrl", "peak2_position_Ctrl" )])
+
+head(merged_filterd_mitosis)
+
+# 3) clean data for further steps 
+
+# Remove rows with NA values
+
+clean_merged_filterd_mitosis <- na.omit(merged_filterd_mitosis)
+
+# Optionally remove constant columns
+
+clean2_merged_filterd_mitosis <- clean_merged_filterd_mitosis[, apply(clean_merged_filterd_mitosis, 2, function(col) sd(col, na.rm = TRUE) != 0)]
+
+
+# Load libraries => fals nicht installiert mussen die instaliert werden
+#install.packages("dbscan")
+#install.packages("factoextra")
+
+# Load libraries
+library(dbscan)
+library(ggplot2)
+library(factoextra)
+
+# Use your actual protein_data with proper rownames (protein names)
+# For example:
+# rownames(protein_data) <- protein_data$ProteinName
+
+# Scale data
+scaled_data <- scale(clean2_merged_filterd_mitosis)
+
+# DBSCAN
+db <- dbscan(scaled_data, eps = 0.8, minPts = 7)
+
+# PCA for plotting
+pca <- prcomp(scaled_data)
+pca_df <- as.data.frame(pca$x[, 1:2])  # PC1 and PC2
+pca_df$cluster <- as.factor(db$cluster)
+pca_df$protein <- rownames(clean2_merged_filterd_mitosis)  # Add protein names
+
+# Plot with noise in grey
+ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster, label = ifelse(cluster == 0, "", protein))) +
+  geom_point(size = 2) +
+  geom_text(check_overlap = TRUE, size = 2.5, vjust = -1) +
+  scale_color_manual(values = c("0" = "grey", "1" = "blue", "2" = "red", "3" = "green", "4" = "purple", "5" = "orange")) +
+  theme_minimal() +
+  labs(title = "DBSCAN Clustering of Proteins",
+       subtitle = "Visualized with PCA (2D)",
+       color = "Cluster") +
+  theme(plot.title = element_text(face = "bold"))
+
+# Create table: which proteins are in which cluster
+clustered_proteins <- split(rownames(clean2_merged_filterd_mitosis), db$cluster)
+
+# Print each cluster's members
+for (cl in sort(unique(db$cluster))) {
+  cat(paste0("Cluster ", cl, ifelse(cl == 0, " (noise)", ""), ": "))
+  cat(paste(clustered_proteins[[as.character(cl)]], collapse = ", "))
+  cat("\n\n")
+}
+
+
+# code from ploting a protein to visualize the proteins that seam to make a complex
+# View Examples
+sample_RBPs_Mitosis <- c("AKAP8_HUMAN", "DDX50_HUMAN", "ELYS_HUMAN" , "GEMI4_HUMAN" , "GEMI4_HUMAN" , "KRI1_HUMAN", "SRS12_HUMAN" , "WDR43_HUMAN")
+
+for (r in sample_RBPs_Mitosis){
+  plot_protein(r)
+  plot_protein_NS(r)
+}
+
+#plot_protein("AKAP8_HUMAN", "DDX50_HUMAN", "ELYS_HUMAN" , "GEMI4_HUMAN" , "GEMI4_HUMAN" , "KRI1_HUMAN", "SRS12_HUMAN" , "WDR43_HUMAN") #fill in protein that you wanna see
+
+
+
+
+
 ```
