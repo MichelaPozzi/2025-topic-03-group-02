@@ -1039,6 +1039,7 @@ legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 19)
 
 # Linear Regression Analysis
 ## Get official molecular weight from Uniprot (vorsicht Leute Code läuft 35 Min!!!... laufen Lassen und Kaffe holen) :)
+## Addition Information about KOmlexes from CORUM_Database
 ```{r}
 library(httr)
 library(jsonlite)
@@ -1081,13 +1082,49 @@ valid_idx <- which(!sapply(masses, is.null))
 masses_vec[valid_idx] <- as.numeric(unlist(masses[valid_idx]))
 
 # DataFrame bauen
-protein_mass_df <- data.frame(
+protein_data <- data.frame(
+  Entry = entry_names,
   UniProtAccession = accession_ids,
   MolecularWeight_kDa = masses_vec / 1000
 )
-head(protein_mass_df)
-sum(is.na(protein_mass_df$MolecularWeight_kDa))
+
+# Load Data from Corum (all HUMAN Complexes)
+library(data.table)
+corum <- fread("corum_humanComplexes.txt", sep = "\t", header = TRUE) 
+
+#build new table, with colum UniProtAcession and ComplexName 
+corum_expanded <- corum[, .(
+  UniProtAccession = unlist(strsplit(subunits_uniprot_id, ";"))
+), by = .(ComplexName = complex_name)]
+
+corum_expanded <- unique(corum_expanded)
+
+#add a new column to dataframe for additional protein data, and assign TRUE/FALSE if found /not found in CORUM
+protein_data$CORUM_member <- protein_data$UniProtAccession %in% corum_expanded$UniProtAccession
+
+#build new table, with column for complex names, assigning each protein all corresponding protein names
+corum_complex_list <- corum_expanded[, .(
+  CORUM_complex_names = paste(unique(ComplexName), collapse = "; ")
+), by = UniProtAccession]
+
+#add complex Names to protein data
+protein_data <- merge(protein_data, corum_complex_list, by = "UniProtAccession", all.x = TRUE, sort = FALSE)
+protein_data$CORUM_member <- !is.na(protein_data$CORUM_complex_names)
+
+#infos 
+head(protein_data)
+sum(is.na(protein_data$MolecularWeight_kDa)) # number of proteins, where no molecular weight was avalible 
+sum(protein_data$CORUM_member== TRUE) # number of our proteins known to be in complex 
+
+# how many proteins and complexes ar listed in this dataset (Human) 
+all_proteins <- unlist(strsplit(corum$subunits_uniprot_id, ";"))
+unique_proteins <- unique(all_proteins)
+length(unique_proteins) #5205 proteins
+
+n_human_complexes <- unique(corum$complex_id)
+length(n_human_complexes) #5366 complexes
 ```
+
 # Correlation Analysis Molekular Weight with Maximum Peak Position
 --> So ist da einfach keine wirklcihe Correlation, leichte Correlationen leigt aber aher an Masse als an tatsächlihcer COrrelation, und lineare Regressionsmodelle sind auch mist
 --> Wir haben ein Problem,die meisten Proteine liegen auch in gegenwart von RNAse noch als Komplex /Quartärstruktur vor (unabhängig von RNAse) Ich hab die monomergewichte und man weis ja garnicht, welche Proteine wir miteinandern doch ncoh in Komplexen hängen
@@ -1110,12 +1147,11 @@ for (p in seq_len(nrow(Peak_Data))) {
   }
   
 }  
-
 Protein_Data_for_LR <- data.frame(max_peak_position_RNase = max_peak_positions)
 rownames(Protein_Data_for_LR) <- rownames(Peak_Data)
 
 # Anfügen der Molecular Weight
-Protein_Data_for_LR$MolecularWeight_kDa <- protein_mass_df$MolecularWeight_kDa
+Protein_Data_for_LR$MolecularWeight_kDa <- protein_data$MolecularWeight_kDa
 Protein_Data_for_LR$CoM_RNase <- Shift_Data$CoM_RNase
 
 # Plotting
@@ -1146,6 +1182,7 @@ summary(lm_model_peak_position)
 
 lm_model_CoM <- lm(MolecularWeight_kDa ~ CoM_RNase, data = Protein_Data_for_LR)
 summary(lm_model_CoM)
+
 ```
 
 # TRY AND ERROR (BackUP)
