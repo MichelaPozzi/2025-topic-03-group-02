@@ -1,0 +1,85 @@
+---
+title: "Data Analysis Template"
+author: "Michela Pozzi"
+date: "2025-06-23"
+output: html_document
+---
+
+# Group X Data Analysis Project 
+
+# Project Overview
+### Goal: 
+
+- Briefly describe the purpose of this analysis
+
+## Libraries 
+
+- Briefly explain for which functions/steps are these needed
+
+```{r, message=FALSE, warning=FALSE}
+
+```
+
+## Load Data 
+
+# Data Cleanup (only steps that make sense for your data)
+### Goal: 
+
+- Removing missing values
+- Imputing missing values
+- Removing low variance columns/rows
+- Removing batch effects
+- Removing outlier samples (only if it is due to technical issues !!)
+- Making sure that data is in the correct format, for example, numbers should be encoded as numeric and not as characters.  
+- Categorical variables should be factors etc.
+- Re-ordering rows/columns in meaningful and useful ways
+
+# Data Description (before normalization)
+### Goal: 
+
+- Summarize features
+
+# Data Normalization (must contain descriptive statistics + graphics)
+### Goal: 
+
+# Data Exploration/Description (must contain descriptive statistics + graphics)
+### Goal: 
+
+- Look at the distribution of the overall data, specific samples or features.
+- Visualize the data distribution
+- Visualize the inter-dependencies among specific samples/features of interest
+- Check some of your hypothesis like - is something high/low between two conditions etc
+
+# Peak Identification (must contain descriptive statistics + graphics)
+### Goal: 
+
+# Gaussian fit (optional) (must contain descriptive statistics + graphics)
+### Goal: 
+
+# Peak Compairson (Ctrl vs. RNase) (must contain descriptive statistics + graphics)
+### Goal: 
+
+# RNA-dependent Proteins Selection Criteria (must contain descriptive statistics + graphics)
+### Goal: 
+
+# Application of Selected Criteria to Identify RNA-dependent Proteins (must contain descriptive statistics + graphics)
+
+## Data Reduction (here or in further analysis)
+### Goal: 
+
+- Try out methods to reduce the dimensionality of this data.
+- Cluster your samples to identify similar and dis-similar groups
+- Check how well the groups separate based on the features of your interest
+
+## PCA, k-means, hierarchical clustering (here or in futher analysis)
+### Goal: 
+
+## Linear regression (here or in the further analysis)
+### Goal: 
+
+# Further Analysis of RNA-dependent proteins (must contain descriptive statistics + graphics)
+
+## Data Modelling 
+### Goal: 
+
+
