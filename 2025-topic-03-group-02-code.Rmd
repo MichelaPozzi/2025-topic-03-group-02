@@ -1629,6 +1629,8 @@ table(shapiro_results$Is_Normal_Distributed)
 ```{r}
 #from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis 
 
+library(dplyr)
+
 # 1) Filter only the RBPs relevant in Mitosis 
 
 filtered_shift_Mitosis <- Shift_Data[rownames(Shift_Data) %in% RBPs_Mitosis, ]
@@ -1637,7 +1639,10 @@ filtered_peak_Mitosis <- Peak_Data[rownames(Peak_Data) %in% RBPs_Mitosis, ]
 
 # 2) Selecting only the interesting coloumns creating comon dataframe
 
-merged_filterd_mitosis <- cbind(filtered_shift_Mitosis[, c("CoM_Ctrl", "shift_distance")], filtered_peak_Mitosis[, c("n_peaks_Ctrl", "peak1_height_Ctrl", "peak2_height_Ctrl", "peak1_position_Ctrl", "peak2_position_Ctrl" )])
+merged_filterd_mitosis <- cbind(
+  filtered_shift_Mitosis[, c("CoM_Ctrl")],
+  filtered_peak_Mitosis %>% select(ends_with("height_Ctrl"))
+)
 
 head(merged_filterd_mitosis)
 
@@ -1669,7 +1674,7 @@ library(factoextra)
 scaled_data <- scale(clean2_merged_filterd_mitosis)
 
 # DBSCAN
-db <- dbscan(scaled_data, eps = 0.8, minPts = 7)
+db <- dbscan(scaled_data, eps = 1.5, minPts = 4)
 
 # PCA for plotting
 pca <- prcomp(scaled_data)
