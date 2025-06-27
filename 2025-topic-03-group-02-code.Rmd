@@ -1758,8 +1758,11 @@ for (r in sample_RBPs_Mitosis){
 
 #plot_protein("AKAP8_HUMAN", "DDX50_HUMAN", "ELYS_HUMAN" , "GEMI4_HUMAN" , "GEMI4_HUMAN" , "KRI1_HUMAN", "SRS12_HUMAN" , "WDR43_HUMAN") #fill in protein that you wanna see
 
-
-
+# Analysis of Clusters with CORUM data
+RBPs_Mitosis_CORUM_clustered3 <- RBPs_Mitosis_CORUM[RBPs_Mitosis_CORUM %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "LSG1_HUMAN", "PRC2A_HUMAN", "RS27_HUMAN", "SAFB1_HUMAN", "SRS10_HUMAN", "ZCH18_HUMAN")]
+length(RBPs_Mitosis_CORUM_clustered3)
+View(RBPs_Mitosis_CORUM_clustered3)
+protein_data[protein_data$Entry %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "SAFB1_HUMAN", "ZCH18_HUMAN"),]
 
 
 ```
