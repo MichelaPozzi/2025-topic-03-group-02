@@ -881,6 +881,7 @@ table(Shift_Data_NS$significant_ttest_filtered, useNA = "ifany")
 #Comparison of Proteins found as RBP in Mitosis vs. in NS_Hela 
 ```{r}
 # View Numbers
+library(glue)
 t_test_positives_NS <- rownames(Shift_Data_NS[Shift_Data_NS$significant_ttest_filtered == TRUE & !is.na(Shift_Data_NS$significant_ttest_filtered), ])
 
 overlap_analysis <- intersect(rownames(MS_Table_NS), rownames(MS_Table))
@@ -1037,9 +1038,7 @@ legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 19)
 
 ```
 
-# Linear Regression Analysis
-## Get official molecular weight from Uniprot (vorsicht Leute Code läuft 35 Min!!!... laufen Lassen und Kaffe holen) :)
-## Addition Information about KOmlexes from CORUM_Database
+# Additional Data for all Proteins using Uniprot and CORUM (carefull runs 35 min!!!... grab a coffee :)
 ```{r}
 library(httr)
 library(jsonlite)
@@ -1125,16 +1124,14 @@ n_human_complexes <- unique(corum$complex_id)
 length(n_human_complexes) #5366 complexes
 ```
 
-# Correlation Analysis Molekular Weight with Maximum Peak Position
---> So ist da einfach keine wirklcihe Correlation, leichte Correlationen leigt aber aher an Masse als an tatsächlihcer COrrelation, und lineare Regressionsmodelle sind auch mist
---> Wir haben ein Problem,die meisten Proteine liegen auch in gegenwart von RNAse noch als Komplex /Quartärstruktur vor (unabhängig von RNAse) Ich hab die monomergewichte und man weis ja garnicht, welche Proteine wir miteinandern doch ncoh in Komplexen hängen
---> vlt. mit menschlichen Proteine die sicher Monomere sind ein Model bauen und dann dadurch irgendwie gucken, ob Proteine als Komplex vorliegen oder nicht??
---> Komplexe und Homodimere etc. rausstreichen bringt absolut garnix
-Protein_Data_for_LR <- Protein_Data_for_LR[which(protein_data$CORUM_member == FALSE), ]
---> Next: Plot line of Maiwens Proteins and compare
+# Linear Regression Analysis - Trying to predict molecular weight through peak position
+--> this method can not be used to predict molecular weight, no sufficient correlation or relevant regression model
+--> Possible reasons: 
+- position in gradient not only depends on weight and but also densitiy and shape of the protein
+- proteins remain in RNA independend complexes after RNase treatment (we tried to exclude all proteins listed in complexes in CORUM databank, however there was still no relevant correlation)
+- model using max peak position or CoM are to simplified (data is much more complex)
 ```{r}
-# irgendwie die Peak_Position von dem Peak mit max peak height bei RNase für jedes Portein raussuchen
-
+# Find maximal peak position of each protein and build data frame together mit data for molecular weight
 max_peak_positions <- numeric(nrow(Peak_Data))
 
 for (p in seq_len(nrow(Peak_Data))) {
@@ -1153,38 +1150,81 @@ for (p in seq_len(nrow(Peak_Data))) {
 Protein_Data_for_LR <- data.frame(max_peak_position_RNase = max_peak_positions)
 rownames(Protein_Data_for_LR) <- rownames(Peak_Data)
 
-# Anfügen der Molecular Weight
 Protein_Data_for_LR$MolecularWeight_kDa <- protein_data$MolecularWeight_kDa
 Protein_Data_for_LR$CoM_RNase <- Shift_Data$CoM_RNase
 
-# Plotting
-library(ggplot2)
-library(dplyr)
-ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_peak_position_RNase, y = MolecularWeight_kDa)) +
-  geom_point() +
-  labs(x = "Peak Position", y = "Molecular Weight (kDa)",
-    title = "Molecular Weight vs. Peak Position ")
+# Try linear regression with maximum peak position
 
-ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = CoM_RNase, y = MolecularWeight_kDa)) +
-  geom_point() +
-  labs(x = "CoM_RNase", y = "Molecular Weight (kDa)",
-    title = "Molecular Weight vs. CoM_RNase")
-
-# Correlation Tests
+# Correlation tests for molecular weight with maximal peak position 
 cor.test(Protein_Data_for_LR$max_peak_position_RNase,
          Protein_Data_for_LR$MolecularWeight_kDa,
          method = "spearman", use = "complete.obs")
 
+# Linear regression models for molecular weight prediction with maximal peak position
+lm_model_peak_position <- lm(MolecularWeight_kDa ~ max_peak_position_RNase, data = Protein_Data_for_LR)
+summary(lm_model_peak_position)
+
+# five reference proteins analysed with known molecular weight and fraction by Caudron et al.
+reference_proteins <- data.frame(
+   x = c(3, 6, 9, 11, 14),
+   y = c(14, 65, 160, 240, 480),
+   name = c("RNaseA 14kDa", "BSA 65kDa", "Aldolase 4*40kDa", "Catalase 4*60kDa", "Ferritin 4*40 kDa") 
+)
+linear_reference <- lm(y ~ x, data = reference_proteins)
+
+# Scatter plots of molecular weight and maximal peak position, with "expected" linear correlation and complex data
+
+CORUM_comlexes <- protein_data[protein_data$CORUM_member == TRUE, ]
+CORUM_comlexes <- Protein_Data_for_LR[rownames(Protein_Data_for_LR) %in% CORUM_comlexes$Entry, ]
+
+library(ggplot2)
+library(dplyr)
+ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_peak_position_RNase, y = MolecularWeight_kDa)) +
+  geom_point(aes(color = "All analysed Proteins")) +
+  geom_point(data = CORUM_comlexes,aes(x = max_peak_position_RNase, y = MolecularWeight_kDa, color = "Proteins in Complex (CORUM)"),alpha = 0.5)  +
+  geom_abline(intercept = coef(linear_reference)[1], 
+              slope = coef(linear_reference)[2], 
+              color = "darkred", size = 1) +
+  geom_point(data = reference_proteins, aes(x = x, y = y), color = "darkred", size = 3) +
+  geom_text(data = reference_proteins[c(1), ], aes(x = x, y = y, label = name),
+            vjust = -1,   hjust = 0.6, color = "darkred", size = 4, fontface = "bold") +
+  geom_text(data = reference_proteins[c(5), ], aes(x = x, y = y, label = name),
+            vjust = 0.3 ,   hjust = 1.2, color = "darkred", size = 4, fontface = "bold") +
+  geom_text(data = reference_proteins[c(2, 3, 4), ], aes(x = x, y = y, label = name),
+            vjust = 0.3,   hjust = -0.2, color = "darkred", size = 4, fontface = "bold") +
+  theme_classic() + theme(legend.position =  c(0.2, 0.85)) +
+  scale_color_manual(values = c("All analysed Proteins" = "gray75", "Proteins in Complex (CORUM)" = "lightcoral")) +
+  labs(x = "Peak Position", y = "Molecular Weight (kDa)", color = "Protein Category", 
+    title = "Molecular Weight vs. Peak Position ")
+
+#Same but this time trying with CoM
+
+# Correlation
 cor.test(Protein_Data_for_LR$CoM_RNase,
          Protein_Data_for_LR$MolecularWeight_kDa,
          method = "spearman", use = "complete.obs")
 
-# Linerare Regressionsanalyse 
-lm_model_peak_position <- lm(MolecularWeight_kDa ~ max_peak_position_RNase, data = Protein_Data_for_LR)
-summary(lm_model_peak_position)
-
+# Linear Regression
 lm_model_CoM <- lm(MolecularWeight_kDa ~ CoM_RNase, data = Protein_Data_for_LR)
 summary(lm_model_CoM)
+
+#Scatter Plot
+ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = CoM_RNase, y = MolecularWeight_kDa)) +
+  geom_point(aes(color = "All analysed Proteins")) +
+  geom_point(data = CORUM_comlexes,aes(x = CoM_RNase, y = MolecularWeight_kDa, color = "Proteins in Complex (CORUM)"),alpha = 0.5)  +
+  geom_abline(intercept = coef(linear_reference)[1], 
+              slope = coef(linear_reference)[2], 
+              color = "darkred", size = 1) +
+  geom_point(data = reference_proteins, aes(x = x, y = y), color = "darkred", size = 3) +
+  geom_text(data = reference_proteins[c(1), ], aes(x = x, y = y, label = name),
+            vjust = -1,   hjust = 0.6, color = "darkred", size = 4, fontface = "bold") +
+  geom_text(data = reference_proteins[c(5), ], aes(x = x, y = y, label = name),
+            vjust = 0.3 ,   hjust = 1.2, color = "darkred", size = 4, fontface = "bold") +
+  geom_text(data = reference_proteins[c(2, 3, 4), ], aes(x = x, y = y, label = name),
+            vjust = 0.3,   hjust = -0.2, color = "darkred", size = 4, fontface = "bold") +
+  theme_classic() + theme(legend.position =  c(0.2, 0.85)) +
+  scale_color_manual(values = c("All analysed Proteins" = "gray75", "Proteins in Complex (CORUM)" = "lightcoral")) +
+  labs(x = "CoM_RNase", y = "Molecular Weight (kDa)",  color = "Protein Category", title = "Molecular Weight vs. CoM_RNase")
 
 ```
 
