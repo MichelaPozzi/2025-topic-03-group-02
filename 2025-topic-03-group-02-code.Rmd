@@ -1841,7 +1841,8 @@ head(merged_filterd_mitosis)
 
 # Remove rows with NA values
 
-clean_merged_filterd_mitosis <- na.omit(merged_filterd_mitosis)
+clean_merged_filterd_mitosis <- merged_filterd_mitosis
+clean_merged_filterd_mitosis[is.na(clean_merged_filterd_mitosis)] <- 0
 
 # Optionally remove constant columns
 
@@ -1864,8 +1865,8 @@ library(factoextra)
 # Scale data
 scaled_data <- scale(clean2_merged_filterd_mitosis)
 
-# DBSCAN
-db <- dbscan(scaled_data, eps = 1.5, minPts = 4)
+# DBSCAN # its important to choose eps and minPts correctly, eps is the max distance for two points to be neighbors, minPts  minimum number of points required to form a dense region ( here i choose x based on the dimension of the data and the averedge protein komplex )
+db <- dbscan(scaled_data, eps = 0.9, minPts = 8)
 
 # PCA for plotting
 pca <- prcomp(scaled_data)
@@ -1897,21 +1898,11 @@ for (cl in sort(unique(db$cluster))) {
 
 # code from ploting a protein to visualize the proteins that seam to make a complex
 # View Examples
-sample_RBPs_Mitosis <- c("AKAP8_HUMAN", "DDX50_HUMAN", "ELYS_HUMAN" , "GEMI4_HUMAN" , "GEMI4_HUMAN" , "KRI1_HUMAN", "SRS12_HUMAN" , "WDR43_HUMAN")
+sample_RBPs_Cluster <- c("CBX8_HUMAN", "DHX8_HUMAN", "FMR1_HUMAN", "KIFC1_HUMAN", "RBM6_HUMAN", "RL27_HUMAN", "RS26L_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN", "TRI25_HUMAN", "UBF1_HUMAN", "ZCCHV_HUMAN")
 
-for (r in sample_RBPs_Mitosis){
+for (r in sample_RBPs_Cluster){
   plot_protein(r)
-  plot_protein_NS(r)
 }
-
-#plot_protein("AKAP8_HUMAN", "DDX50_HUMAN", "ELYS_HUMAN" , "GEMI4_HUMAN" , "GEMI4_HUMAN" , "KRI1_HUMAN", "SRS12_HUMAN" , "WDR43_HUMAN") #fill in protein that you wanna see
-
-# Analysis of Clusters with CORUM data
-RBPs_Mitosis_CORUM_clustered3 <- RBPs_Mitosis_CORUM[RBPs_Mitosis_CORUM %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "LSG1_HUMAN", "PRC2A_HUMAN", "RS27_HUMAN", "SAFB1_HUMAN", "SRS10_HUMAN", "ZCH18_HUMAN")]
-length(RBPs_Mitosis_CORUM_clustered3)
-View(RBPs_Mitosis_CORUM_clustered3)
-protein_data[protein_data$Entry %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "SAFB1_HUMAN", "ZCH18_HUMAN"),]
-
 
 ```
 
@@ -1919,24 +1910,16 @@ protein_data[protein_data$Entry %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "SAFB1_HUMA
 # vergleich mit corum daten
 ```{r}
 
-# Load CORUM data
-corum_data <- read.delim("C://Users//Sofi//Downloads//corum_allComplexes.txt", stringsAsFactors = FALSE)
+# Analysis of Clusters with CORUM data
+RBPs_Mitosis_CORUM_clustered3 <- RBPs_Mitosis_CORUM[RBPs_Mitosis_CORUM %in% c("CLAP1_HUMAN", "ELYS_HUMAN", "KIF14_HUMAN" , "NOP58_HUMAN", "PRPF3_HUMAN", "RBBP6_HUMAN", "RFC1_HUMAN", "ZC11A_HUMAN")]
 
-# Extract CORUM gene symbols (assumes subunits_gene_name column)
-corum_genes <- unique(unlist(strsplit(as.character(corum_data$subunits_gene_name), "; ")))
+length(RBPs_Mitosis_CORUM_clustered3)
 
-# Your corrected list
-corrected_genes <- c(
-  "AKAP17A", "ATRX", "CSTF2T", "EIF2B2", "EIF2B5", "EPIPL", "ERCC6", "FUBP3",
-  "HNRNPLL", "MOV10", "PHF5A", "PRKCB", "PPIG", "PRPF4", "PSPC1", "RBM5",
-  "SRP68", "GTF2B", "TRIPB", "UIMC1", "WIZ", "ZNF598"
-)
+View(RBPs_Mitosis_CORUM_clustered3)
 
-# Check which are in CORUM
-in_corum <- corrected_genes %in% corum_genes
+protein_data[protein_data$Entry %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "SAFB1_HUMAN", "ZCH18_HUMAN"),]
 
-# Summary table
-data.frame(Gene = corrected_genes, In_CORUM = in_corum)
+
 ```
 
 
