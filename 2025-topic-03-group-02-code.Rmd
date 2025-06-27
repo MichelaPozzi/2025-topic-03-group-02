@@ -593,7 +593,7 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
   theme_minimal()
 ```
 
-## Validation of T-Test 
+## Validation of T-Test with UniProt Data
 ```{r}
 library(glue)
 
@@ -632,6 +632,44 @@ neg_df <- data.frame(
   TTest = neg_controls %in% t_test_positives)
 
 print(neg_df)
+```
+
+###Plot Validation of T-test with UniProt Data
+```{r}
+library(ggplot2)
+library(dplyr)
+highlight_data <- subset(Shift_Data,
+                         rownames(Shift_Data) %in% overlap_t_test |
+                         rownames(Shift_Data) %in% not_indentified |
+                         significant_ttest_filtered)
+
+highlight_data$color_group <- case_when(
+  rownames(highlight_data) %in% overlap_t_test ~ "Overlaping with UniProt",
+  rownames(highlight_data) %in% not_indentified ~ "UniProt Proteins not identified",
+  highlight_data$significant_ttest_filtered ~ "Significant Left Shift / RBPs"
+)
+highlight_data$alpha_group <- case_when(
+  highlight_data$color_group == "Overlaping with UniProt" ~ "high",
+  highlight_data$color_group == "UniProt Proteins not identified" ~ "high",
+  highlight_data$color_group == "Significant Left Shift / RBPs" ~ "low"
+)
+
+ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
+    geom_point(aes(color = "No significant Shift"), alpha = 0.3, show.legend = FALSE) +
+    geom_point(data = highlight_data,
+             aes(color = color_group, alpha = alpha_group)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray20") +
+  scale_color_manual(name = "Significance as RBP",values = c(
+    "No significant Shift" = "gray80",
+    "Significant Left Shift / RBPs" = "gray40",
+    "Overlaping with UniProt" = "lightcoral",
+    "UniProt Proteins not identified" = "darkred"
+  ))+
+  scale_alpha_manual(values = c("high" = 0.9, "low" = 0.3), guide = "none") + 
+  labs(title = "Validation of T-Test: Comparing with UniProt Data",
+       x = "CoM Ctrl",
+       y = "CoM RNase") +
+  theme_minimal()
 ```
 
 ### Analyse Verbesserungen T-Test (FALSE NEGATIVE RATE)?????
