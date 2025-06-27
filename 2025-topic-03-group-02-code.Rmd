@@ -1720,3 +1720,210 @@ for (r in sample_RBPs_Mitosis){
 
 
 ```
+
+
+# vergleich mit corum daten
+```{r}
+
+# Load CORUM data
+corum_data <- read.delim("C://Users//Sofi//Downloads//corum_allComplexes.txt", stringsAsFactors = FALSE)
+
+# Extract CORUM gene symbols (assumes subunits_gene_name column)
+corum_genes <- unique(unlist(strsplit(as.character(corum_data$subunits_gene_name), "; ")))
+
+# Your corrected list
+corrected_genes <- c(
+  "AKAP17A", "ATRX", "CSTF2T", "EIF2B2", "EIF2B5", "EPIPL", "ERCC6", "FUBP3",
+  "HNRNPLL", "MOV10", "PHF5A", "PRKCB", "PPIG", "PRPF4", "PSPC1", "RBM5",
+  "SRP68", "GTF2B", "TRIPB", "UIMC1", "WIZ", "ZNF598"
+)
+
+# Check which are in CORUM
+in_corum <- corrected_genes %in% corum_genes
+
+# Summary table
+data.frame(Gene = corrected_genes, In_CORUM = in_corum)
+```
+
+
+# ok also da wirklich alles immer negativ ausfallt will ich mir jetzt meinen code auf andere proteine angucken um zu sehen ob es da uberlappungen gibt 
+```{r}
+
+# Erstaml einige steps die wir auf Hela nicht gemacht hatten adapted, colliden nicht mit enviroment
+#loading Data
+MS_Table_NS <- read.table("RDeeP_HeLa_NS.csv", header = TRUE, row.names = 1, sep = ";")
+
+#Dataframe
+treatment <- factor(rep(c("Ctrl", "RNase"), each = 3, length.out = 150))
+replicate <- factor(rep(c("Ctrl_Rep1", "Ctrl_Rep2", "Ctrl_Rep3", "RNase_Rep1","RNase_Rep2", "RNase_Rep3"),25))
+fraction <- factor(rep(paste0("Fraction_", 1:25), each = 6))
+
+data <- data.frame(rownames = colnames(MS_Table),treatment = treatment, replicate = replicate, fraction = fraction)
+
+# ---------- PART 1: AVERAGING ----------
+average.list_NS <- list() #create list
+
+for (f in levels(fraction)) {
+  
+  cols.Ctrl <- which(fraction == f & treatment == "Ctrl") 
+  average.Ctrl <- rowMeans(MS_Table_NS[, cols.Ctrl]) 
+  average.list_NS[[paste0("Ctrl_", f)]] <- average.Ctrl
+  
+  cols.RNase <- which(fraction == f & treatment == "RNase")
+  average.RNase <- rowMeans(MS_Table_NS[, cols.RNase])
+  average.list_NS[[paste0("RNase_", f)]] <- average.RNase
+}
+
+MS_Table_Averages_NS <- as.data.frame(average.list_NS)
+rownames(MS_Table_Averages_NS) <- rownames(MS_Table_NS)
+
+fractions <- paste0("Fraction_", 1:25)
+
+ordered_names_NS <- as.vector(rbind(
+  paste0("Ctrl_", fractions),
+  paste0("RNase_", fractions)
+))
+
+MS_Table_Averages_NS <- MS_Table_Averages_NS[, ordered_names_NS]
+head(MS_Table_Averages_NS)
+
+# ---------- PART 2: PEAK DETECTION ----------
+x <- 1:25
+
+find_peaks <- function(y, threshold = max(y, na.rm = TRUE) * 0.03) { 
+  peaks <- which(diff(sign(diff(y))) == -2) + 1
+  peaks[y[peaks] >= threshold]
+}
+
+peak_results_NS <- list()
+
+for (p in seq_len(nrow(MS_Table_NS))) {
+  
+  row_vals <- as.numeric(MS_Table_NS[p, ])
+  ctrl_vals <- row_vals[seq(1, 50, by = 2)]
+  rnase_vals <- row_vals[seq(2, 50, by = 2)]
+  
+  results_row <- list()
+  
+  for (cond in c("Ctrl", "RNase")) {
+    y <- if (cond == "Ctrl") ctrl_vals else rnase_vals
+    threshold <- max(y, na.rm = TRUE) * 0.03
+    peaks <- find_peaks(y)
+    
+    if (length(peaks) == 0) {
+      peaks <- numeric(0)
+    }
+    if (!is.na(y[1]) && !is.na(y[2]) && y[1] > y[2] && y[1] >= threshold) {
+      peaks <- c(1, peaks)
+    }
+    if (!is.na(y[25]) && !is.na(y[24]) && y[25] > y[24] && y[25] >= threshold) {
+      peaks <- c(peaks, 25)
+    }
+    if (length(peaks) == 0) {
+      peaks <- which.max(y)
+    }
+    
+    n_peaks <- min(length(peaks), 6)
+    y_peaks <- y[peaks]
+    x_peaks <- x[peaks]
+    
+    results_row[[paste0("n_peaks_", cond)]] <- n_peaks
+    
+    for (n in seq_len(n_peaks)) {
+      results_row[[paste0("peak", n, "_height_", cond)]] <- y_peaks[n]
+      results_row[[paste0("peak", n, "_position_", cond)]] <- x_peaks[n]
+    }
+  }
+  
+  peak_results_NS[[p]] <- results_row
+}
+
+rows_df_NS <- lapply(peak_results_NS, function(x) {
+  columns <- c("peak1_height", "peak1_position", "peak2_height", "peak2_position", 
+               "peak3_height", "peak3_position", "peak4_height", "peak4_position", 
+               "peak5_height", "peak5_position", "peak6_height", "peak6_position")
+  for (cond in c("Ctrl", "RNase")) {
+    for (c in columns) {
+      key <- paste0(c, "_", cond)
+      if (!(key %in% names(x))) {
+        x[[key]] <- NA
+      }
+    }
+  }
+  as.data.frame(x)
+})
+
+Peak_Data_NS <- do.call(rbind, rows_df_NS)
+rownames(Peak_Data_NS) <- rownames(MS_Table_NS)
+
+# Reorder columns
+order_NS <- c("n_peaks_Ctrl", "n_peaks_RNase")
+for (i in 1:6) {
+  order_NS <- c(order_NS,
+                paste0("peak", i, "_height_Ctrl"),
+                paste0("peak", i, "_position_Ctrl"),
+                paste0("peak", i, "_height_RNase"),
+                paste0("peak", i, "_position_RNase"))
+}
+Peak_Data_NS <- Peak_Data_NS[, order_NS]
+
+# Check output
+head(Peak_Data_NS)
+
+# ---------- PART 3: Clustering ----------
+
+# 1. Filter only the RBPs relevant in non-synchronized (NS) condition
+filtered_shift_NS <- Shift_Data_NS[rownames(Shift_Data_NS) %in% RBPs_NS, ]
+filtered_peak_NS  <- Peak_Data_NS[rownames(Peak_Data_NS) %in% RBPs_NS, ]
+
+# 2. Select interesting columns and combine
+merged_filtered_NS <- cbind(
+  filtered_shift_NS[, c("CoM_Ctrl")],
+  filtered_peak_NS %>% dplyr::select(ends_with("height_Ctrl"))
+)
+
+# 3. Remove rows with NA values
+clean_merged_filtered_NS <- na.omit(merged_filtered_NS)
+
+# 4. Remove constant columns
+clean2_merged_filtered_NS <- clean_merged_filtered_NS[, apply(clean_merged_filtered_NS, 2, function(col) sd(col, na.rm = TRUE) != 0)]
+
+# 5. Scale data
+scaled_data_NS <- scale(clean2_merged_filtered_NS)
+
+# 6. Run DBSCAN
+library(dbscan)
+library(ggplot2)
+library(factoextra)
+
+db_NS <- dbscan(scaled_data_NS, eps = 1.5, minPts = 4)
+
+# 7. PCA for visualization
+pca_NS <- prcomp(scaled_data_NS)
+pca_df_NS <- as.data.frame(pca_NS$x[, 1:2])  # Keep PC1 and PC2
+pca_df_NS$cluster <- as.factor(db_NS$cluster)
+pca_df_NS$protein <- rownames(clean2_merged_filtered_NS)
+
+# 8. Plot PCA + Clusters
+ggplot(pca_df_NS, aes(x = PC1, y = PC2, color = cluster, label = ifelse(cluster == 0, "", protein))) +
+  geom_point(size = 2) +
+  geom_text(check_overlap = TRUE, size = 2.5, vjust = -1) +
+  scale_color_manual(values = c("0" = "grey", "1" = "blue", "2" = "red", "3" = "green", "4" = "purple", "5" = "orange")) +
+  theme_minimal() +
+  labs(title = "DBSCAN Clustering of Proteins (NS)",
+       subtitle = "Visualized with PCA (2D)",
+       color = "Cluster") +
+  theme(plot.title = element_text(face = "bold"))
+
+# 9. Print proteins in each cluster
+clustered_proteins_NS <- split(rownames(clean2_merged_filtered_NS), db_NS$cluster)
+
+for (cl in sort(unique(db_NS$cluster))) {
+  cat(paste0("Cluster ", cl, ifelse(cl == 0, " (noise)", ""), ": "))
+  cat(paste(clustered_proteins_NS[[as.character(cl)]], collapse = ", "))
+  cat("\n\n")
+}
+
+
+
+```
