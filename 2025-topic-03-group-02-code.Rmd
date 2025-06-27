@@ -1129,6 +1129,9 @@ length(n_human_complexes) #5366 complexes
 --> So ist da einfach keine wirklcihe Correlation, leichte Correlationen leigt aber aher an Masse als an tatsächlihcer COrrelation, und lineare Regressionsmodelle sind auch mist
 --> Wir haben ein Problem,die meisten Proteine liegen auch in gegenwart von RNAse noch als Komplex /Quartärstruktur vor (unabhängig von RNAse) Ich hab die monomergewichte und man weis ja garnicht, welche Proteine wir miteinandern doch ncoh in Komplexen hängen
 --> vlt. mit menschlichen Proteine die sicher Monomere sind ein Model bauen und dann dadurch irgendwie gucken, ob Proteine als Komplex vorliegen oder nicht??
+--> Komplexe und Homodimere etc. rausstreichen bringt absolut garnix
+Protein_Data_for_LR <- Protein_Data_for_LR[which(protein_data$CORUM_member == FALSE), ]
+--> Next: Plot line of Maiwens Proteins and compare
 ```{r}
 # irgendwie die Peak_Position von dem Peak mit max peak height bei RNase für jedes Portein raussuchen
 
@@ -1176,7 +1179,7 @@ cor.test(Protein_Data_for_LR$CoM_RNase,
          Protein_Data_for_LR$MolecularWeight_kDa,
          method = "spearman", use = "complete.obs")
 
-# Linerare Regressionsanalyse
+# Linerare Regressionsanalyse 
 lm_model_peak_position <- lm(MolecularWeight_kDa ~ max_peak_position_RNase, data = Protein_Data_for_LR)
 summary(lm_model_peak_position)
 
