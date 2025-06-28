@@ -116,18 +116,32 @@ plot_protein <- function(x) {
   ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
   rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
   fractions <- 1:25
+  max_val <- max(ctrl_values, rnase_values, na.rm = TRUE)
+  ylim_range <- c(0, max_val * 1.1)
 
-  plot(fractions, ctrl_values, type="o", pch=16, lty=1, col="green", ylim=range(c(ctrl_values, rnase_values)),
-       xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest)
+  plot(fractions, ctrl_values, type="o", pch=20, lty=1, lwd = 1.5,  col="forestgreen", ylim= ylim_range,
+       xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest, axes = FALSE)
        
-  lines(fractions, rnase_values, type="o",pch =16, lty=1, col="red")
-  legend("topright", legend=c("Ctrl", "RNase"), col=c("green", "red"), lty=1, pch=16)
+  lines(fractions, rnase_values, type="o",pch =20, lty=1, lwd = 1.5,  col="firebrick3")
+  
+  polygon(c(fractions, rev(fractions)), 
+          c(ctrl_values, rep(0, length(ctrl_values))), 
+          col=adjustcolor("forestgreen", alpha.f=0.1), border=NA)
+  
+  polygon(c(fractions, rev(fractions)), 
+          c(rnase_values, rep(0, length(rnase_values))), 
+          col=adjustcolor("firebrick3", alpha.f=0.1), border=NA)
+  
+  axis(1, at = 1:25, labels = 1:25, cex.axis = 0.7)
+  axis(2, cex.axis = 0.7, las =2)
+  grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted", lwd = 0.8)
+
+  legend("topright", legend=c("Ctrl", "RNase"), col=c("forestgreen", "firebrick3"), 
+         lty=1, lwd = 1.5,  pch=20, bg = "white", bty = "o", box.col = NA)
 }
 
-plot_protein("CPSF5_HUMAN") #fill in protein that you wanna see
+plot_protein("ANM7_HUMAN") #fill in protein that you wanna see
 ```
-
-
 
 ## Reproducibility Analysis
 - Description nessesary and all code descriptions in english
@@ -776,12 +790,28 @@ plot_protein_NS <- function(x) {
   ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
   rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
   fractions <- 1:25
+  max_val <- max(ctrl_values, rnase_values, na.rm = TRUE)
+  ylim_range <- c(0, max_val * 1.1)
 
-  plot(fractions, ctrl_values, type="o", pch=16, lty=1, col="green", ylim=range(c(ctrl_values, rnase_values)),
-       xlab="Fraction", ylab="Normalized Intensity", main= paste(protein_of_interest, "non-synchronised"))
+  plot(fractions, ctrl_values, type="o", pch=20, lty=1, lwd =1.5, col="forestgreen", ylim=range(c(ctrl_values, rnase_values)),
+       xlab="Fraction", ylab="Normalized Intensity", main= paste(protein_of_interest, "non-synchronised"), axes = FALSE)
        
-  lines(fractions, rnase_values, type="o",pch =16, lty=1, col="red")
-  legend("topright", legend=c("Ctrl", "RNase"), col=c("green", "red"), lty=1, pch=16)
+  lines(fractions, rnase_values, type="o",pch =20, lty=1,lwd =1.5, col="firebrick3")
+  
+  polygon(c(fractions, rev(fractions)), 
+          c(ctrl_values, rep(0, length(ctrl_values))), 
+          col=adjustcolor("forestgreen", alpha.f=0.1), border=NA)
+  
+  polygon(c(fractions, rev(fractions)), 
+          c(rnase_values, rep(0, length(rnase_values))), 
+          col=adjustcolor("firebrick3", alpha.f=0.1), border=NA)
+  
+  axis(1, at = 1:25, labels = 1:25, cex.axis = 0.7)
+  axis(2, cex.axis = 0.7, las =2)
+  grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted", lwd = 0.8)
+  
+  legend("topright", legend=c("Ctrl", "RNase"), col=c("forestgreen", "firebrick3"), 
+         lty=1, lwd = 1.5,  pch=20, bg = "white", bty = "o", box.col = NA)
 }
 
 # Shift Characteristics based on normalised Data and CoM
