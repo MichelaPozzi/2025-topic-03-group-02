@@ -3,15 +3,14 @@
 
 Welcome to the **Proteome-wide Screen for RNA-dependent Proteins** project! This repository will serve as the central place for exploring, analyzing, and visualizing data related to RNA-protein interactions across the proteome.
 
-Fragen: 
-- Dürfen/Sollen wir die selben Kriterien zur bestimmung des Shifts (1 Fraction) verwenden, wie das original paper? wie wird das begründet? wofür haben die dann die ganzen anderen shift characteristics berechnet?
-- Reicht die Analyse des Protein amounts between replicates als reproducibility check?
-- immernoch die Frage, wie kommen wir von der Lyse ganzer Zellen zu Mass spectromity daten einzelner proteine? wie kann man die proteine genau identifizieren, sicher sein, dass in control und RNase probe wirklich genau das Protein betrachtet wird?
-- Wenn man sich R-Deep 3.0 anguckt, dann wurde doch alles was wir machen sollen schon getan oder? 
-    Können wir die Daten dann nutzen um zu schauen, ob wir alles richtig gemacht haben?
-- Wie genau kann man sich die Quantifikation vorstellen, "Amount of protein" = Fläche unter der Kurve, aber sind das nicht immer 100% ? und wieso braucht man dieses Parameter, wofür?
-- There is right and left shifts. A Protein which is RNA dependent could then in a very unlucky scenario first have a right shift, gaining interaction, then a left one equalling no shifts and therefore beeing undetected. 
-- Where could we include a linear regression analysis? --> Idea in ReadMe under "Projektplan Draft" in "optional stuff mitosis related", not sure if realizable 
+# Final Days Plan und TO-DO
+
+- Code aufräumen und einemal bei leerem Enivornment vollständig runnen (inkl. Namen)
+- ReedMe schreiben und sichergehen, dass alle Projektdateien am richtigen Ort liegen
+- Präsentation: 
+--> Plan überlegen (Story Line und Storry Telling, Plotts udn Themen besonderer Wichtigkeit auswählen)
+--> Complex auswählen, den wir hoffentlich gefuden haben und recherche dazu machen, was macht der?, wieso ist dieser Komplex nurn in Mitose aktiv?, vlt. Teile des Komplexes die wir nicht gefunden haben, wieso?, etc. 
+--> Poster erstellen in PowerPoint 
 
 # Projektplan Draft
 Working in sprints and Correction loops (1.week cooding, 2.week adaptation to feedback)
