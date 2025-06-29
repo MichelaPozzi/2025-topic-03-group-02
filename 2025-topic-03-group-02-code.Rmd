@@ -1934,7 +1934,7 @@ library(factoextra)
 scaled_data <- scale(clean2_merged_filterd_mitosis)
 
 # DBSCAN # its important to choose eps and minPts correctly, eps is the max distance for two points to be neighbors, minPts  minimum number of points required to form a dense region ( here i choose x based on the dimension of the data and the averedge protein komplex )
-db <- dbscan(scaled_data, eps = 0.9, minPts = 8)
+db <- dbscan(scaled_data, eps = 0.7, minPts = 4)
 
 # PCA for plotting
 pca <- prcomp(scaled_data)
@@ -2024,44 +2024,68 @@ head(results_df)
 library(ggplot2)
 library(reshape2)
 
-# Step 1: your target proteins
-target_proteins <- c("AURKA", "KIFC1", "TPX2")  # Replace with real names
 
-# Step 2: all unique protein pairs
-protein_pairs <- combn(target_proteins, 2, simplify = FALSE)
+# --- Step 1: Define your proteins of interest ---
+target_proteins <- c("RS12_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN")
+negative_controls <- c("LPPRC_HUMAN", "UIMC1_HUMAN")  # Add more if needed
 
-# Step 3: Initialize score storage
+all_proteins <- c(target_proteins, negative_controls)
+
+# --- Step 3: create all pairwise combinations ---
+protein_pairs <- combn(all_proteins, 2, simplify = FALSE)
+
+# --- Step 4: scoring for each DBSCAN setting ---
 score_results <- data.frame()
 
-# Step 4: Loop through each parameter combo (column)
 for (col_name in colnames(results_df)) {
-  cluster_assignments <- results_df[[col_name]]
+  
+  cluster_assignments <- as.numeric(results_df[[col_name]])
+  names(cluster_assignments) <- rownames(results_df)
   
   pair_scores <- c()
-  
+
   for (pair in protein_pairs) {
     p1 <- pair[1]
     p2 <- pair[2]
-    
     c1 <- cluster_assignments[p1]
     c2 <- cluster_assignments[p2]
-    
-    # Scoring logic
-    score <- if (c1 == 0 | c2 == 0) {
-      0
-    } else if (c1 == c2) {
-      1
+
+    # Skip if NA
+    if (is.na(c1) || is.na(c2)) {
+      score <- NA
+
+    # Both are targets
+    } else if (p1 %in% target_proteins && p2 %in% target_proteins) {
+      if (c1 == 0 || c2 == 0) {
+        score <- 0
+      } else if (c1 == c2) {
+        score <- 1
+      } else {
+        score <- -1
+      }
+
+    # One is negative control, one is target
+    } else if ((p1 %in% negative_controls && p2 %in% target_proteins) || 
+               (p2 %in% negative_controls && p1 %in% target_proteins)) {
+      if (c1 == 0 || c2 == 0) {
+        score <- 0
+      } else if (c1 == c2) {
+        score <- -1
+      } else {
+        score <- 1  # Properly separated
+      }
+
+    # Both are negative controls – don't score this pair
     } else {
-      -1
+      next
     }
-    
+
     pair_scores <- c(pair_scores, score)
   }
-  
-  avg_score <- mean(pair_scores)
-  
-  # Extract eps and minPts from column name
-  parts <- strcapture("eps_([0-9.]+)_minPts_([0-9]+)", col_name, data.frame(eps=0, minPts=0))
+
+  avg_score <- mean(pair_scores, na.rm = TRUE)
+
+  parts <- strcapture("eps_([0-9.]+)_minPts_([0-9]+)", col_name, data.frame(eps = 0, minPts = 0))
   
   score_results <- rbind(score_results, data.frame(
     eps = as.numeric(parts$eps),
@@ -2070,19 +2094,90 @@ for (col_name in colnames(results_df)) {
   ))
 }
 
-# Step 5: Make heatmap
+# --- Step 6: Plot heatmap ---
 ggplot(score_results, aes(x = eps, y = minPts, fill = score)) +
-  geom_tile() +
-  scale_fill_gradient2(low = "red", mid = "white", high = "blue", midpoint = 0) +
-  labs(title = "Pairwise Clustering Consistency Score",
-       subtitle = "Across DBSCAN parameter settings",
+  geom_tile(color = "grey70") +
+  scale_fill_gradient2(low = "red", mid = "white", high = "blue", midpoint = 0, limits = c(-1, 1)) +
+  labs(title = "Clustering Consistency of Protein Pairs",
+       subtitle = "Based on DBSCAN parameter combinations",
        x = "Epsilon (ε)",
        y = "MinPts",
-       fill = "Avg. Score") +
+       fill = "Avg. Pair Score") +
   theme_minimal()
-
-
 
 
 ```
 
+
+# without negative test
+```{r}
+library(ggplot2)
+
+# --- Step 1: Define your proteins of interest ---
+target_proteins <- c("RS12_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN") # Replace with your real protein names
+
+
+# --- Step 3: Generate all unique protein pairs ---
+protein_pairs <- combn(target_proteins, 2, simplify = FALSE)
+
+# --- Step 4: Initialize container for scoring results ---
+score_results <- data.frame()
+
+# --- Step 5: Loop through all parameter combinations ---
+for (col_name in colnames(results_df)) {
+  
+  cluster_assignments <- as.numeric(results_df[[col_name]])  # ensure numeric
+  names(cluster_assignments) <- rownames(results_df)         # preserve protein names
+  
+  pair_scores <- c()
+  
+  for (pair in protein_pairs) {
+    p1 <- pair[1]
+    p2 <- pair[2]
+    
+    # Retrieve cluster numbers
+    c1 <- cluster_assignments[p1]
+    c2 <- cluster_assignments[p2]
+    
+    # Scoring logic with full NA protection
+    if (is.na(c1) || is.na(c2)) {
+      score <- NA
+    } else if (c1 == 0 || c2 == 0) {
+      score <- 0
+    } else if (c1 == c2) {
+      score <- 1
+    } else {
+      score <- -1
+    }
+    
+    pair_scores <- c(pair_scores, score)
+  }
+  
+  # Calculate average score, excluding NA
+  avg_score <- mean(pair_scores, na.rm = TRUE)
+  
+  # Extract eps and minPts from column name
+  parts <- strcapture("eps_([0-9.]+)_minPts_([0-9]+)", col_name, data.frame(eps = 0, minPts = 0))
+  
+  score_results <- rbind(score_results, data.frame(
+    eps = as.numeric(parts$eps),
+    minPts = as.numeric(parts$minPts),
+    score = avg_score
+  ))
+}
+
+# --- Step 6: Plot heatmap ---
+ggplot(score_results, aes(x = eps, y = minPts, fill = score)) +
+  geom_tile(color = "grey70") +
+  scale_fill_gradient2(low = "red", mid = "white", high = "blue", midpoint = 0, limits = c(-1, 1)) +
+  labs(title = "Clustering Consistency of Protein Pairs",
+       subtitle = "Based on DBSCAN parameter combinations",
+       x = "Epsilon (ε)",
+       y = "MinPts",
+       fill = "Avg. Pair Score") +
+  theme_minimal()
+
+#c("RL22_HUMAN", "RL23_HUMAN", "RL24_HUMAN" , "RL27_HUMAN" , "RL30_HUMAN" , "RL34_HUMAN" , "RLA1_HUMAN")
+
+```
+ 
