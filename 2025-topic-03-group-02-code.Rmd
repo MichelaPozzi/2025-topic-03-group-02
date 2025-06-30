@@ -338,43 +338,6 @@ head(Peak_Data)
 ```
 
 
-#doing a PCa analysis in order to look at the distribution of RBPS => could be applyed to selected RBPs from mytosis
-```{r}
-# Load required package
-library(ggplot2)
-
-# Assume your data is in a data frame called 'df'
-# Rows = proteins, Columns = the 26 features you mentioned
-# First, remove rows with any NA values
-Peak_Data_clean <- na.omit(Peak_Data)
-
-# Remove columns with zero variance
-Peak_Data_clean_clean <- Peak_Data_clean[, apply(Peak_Data_clean, 2, function(col) sd(col, na.rm = TRUE) != 0)]
-
-# Perform PCA (center and scale the data)
-pca_result <- prcomp(Peak_Data_clean_clean, center = TRUE, scale. = TRUE)
-
-# Extract the scores for the first two principal components
-pc_scores <- as.data.frame(pca_result$x[, 1:2])
-
-# Add protein names as a column (assuming they are rownames)
-pc_scores$Protein <- rownames(pc_scores)
-
-# Create a new column that marks whether the protein is in t_test_positives (taken from further steps of the analysis)
-
-pc_scores$Significant <- ifelse(pc_scores$Protein %in% t_test_positives, "Yes", "No")
-
-# Plot the PCA
-ggplot(pc_scores, aes(x = PC1, y = PC2, color = Significant)) +
-  geom_point(alpha = 0.7, size = 1.5) +
-  scale_color_manual(values = c("Yes" = "red", "No" = "black")) +
-  theme_minimal() +
-  labs(title = "PCA of Protein Features (highlighting significant proteins)",
-       x = "PC1", y = "PC2", color = "Significant")
-
-```
-
-
 # Shift Characteristics
 - Determine shift distance and shift direction for all proteins and store in a df
 - Shift distance is calculated using caluculations of CoM (Center of Mass) for Ctrl and RNAse and caluculating deviation
@@ -418,6 +381,7 @@ head(Shift_Data)
 #numer of proteins with shift based on average values (just for interesst, delete later)
 sum(Shift_Data$shift_distance > 1, na.rm = TRUE)
 ```
+
 ##T-Test 
 ### First Normalization of whole MS_Table to 100 
 - We decided to run the statistical test on normalised values, so all replicates need to be normalised to 100
@@ -587,7 +551,7 @@ table(Shift_Data$significant_ttest_filtered, useNA = "ifany")
 head(Shift_Data)
 ```
 
-## Plot TTest Results
+## Plot T-Test Results
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -1297,6 +1261,42 @@ ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = CoM_
 ```
 
 # TRY AND ERROR (BackUP)
+
+#doing a PCa analysis in order to look at the distribution of RBPS => could be applyed to selected RBPs from mytosis - Sofia
+```{r}
+# Load required package
+library(ggplot2)
+
+# Assume your data is in a data frame called 'df'
+# Rows = proteins, Columns = the 26 features you mentioned
+# First, remove rows with any NA values
+Peak_Data_clean <- na.omit(Peak_Data)
+
+# Remove columns with zero variance
+Peak_Data_clean_clean <- Peak_Data_clean[, apply(Peak_Data_clean, 2, function(col) sd(col, na.rm = TRUE) != 0)]
+
+# Perform PCA (center and scale the data)
+pca_result <- prcomp(Peak_Data_clean_clean, center = TRUE, scale. = TRUE)
+
+# Extract the scores for the first two principal components
+pc_scores <- as.data.frame(pca_result$x[, 1:2])
+
+# Add protein names as a column (assuming they are rownames)
+pc_scores$Protein <- rownames(pc_scores)
+
+# Create a new column that marks whether the protein is in t_test_positives (taken from further steps of the analysis)
+
+pc_scores$Significant <- ifelse(pc_scores$Protein %in% t_test_positives, "Yes", "No")
+
+# Plot the PCA
+ggplot(pc_scores, aes(x = PC1, y = PC2, color = Significant)) +
+  geom_point(alpha = 0.7, size = 1.5) +
+  scale_color_manual(values = c("Yes" = "red", "No" = "black")) +
+  theme_minimal() +
+  labs(title = "PCA of Protein Features (highlighting significant proteins)",
+       x = "PC1", y = "PC2", color = "Significant")
+
+```
 
 ## Cluster Cihan Try
 ```{r}
