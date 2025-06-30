@@ -1147,10 +1147,6 @@ protein_data[protein_data$Entry %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "SAFB1_HUMA
 
 ```
 
-<<<<<<< HEAD
-# Additional Data for all Proteins using Uniprot and CORUM -Lina
-(carefull runs 35 min!!!... grab a coffee :)
-=======
 # 5) finding the right parameters to choose the perfect cluster size 
 Goal: getting a good idea of how the picking of the parameters affects our clustering results by trying all combinations and creating a heat map based on the performance on a cluster (selected from exel from previous chunk). For the heatmap we made up following logic. 
 
@@ -1296,8 +1292,8 @@ ggplot(score_results, aes(x = eps, y = minPts, fill = score)) +
 
 
 
-# Additional Data for all Proteins using Uniprot and CORUM (carefull runs 35 min!!!... grab a coffee :)
->>>>>>> aa78f343168ec0c285d1a0308d32e67bc485fabc
+# Additional Data for all Proteins using Uniprot and CORUM -Lina
+(carefull runs 35 min!!!... grab a coffee :)
 ```{r}
 library(httr)
 library(jsonlite)
