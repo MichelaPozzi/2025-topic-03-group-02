@@ -40,6 +40,7 @@ glue("Any missing values: {any(is.na(MS_Table))}")
 glue("Overall minimum intenstity: {min(MS_Table)}")
 glue("Overall maximum intenstity: {max(MS_Table)}")
 ```
+
 #Normalisation
 GOAL: 
 - Generate a new dataframe with replicate-averaged intensity values,scaled so that each protein's total intensity sums to 100 across all fractions (fopr Ctrl and RNase)
@@ -351,52 +352,56 @@ Peak_Data <- Peak_Data[, order]
 ```
 
 
-# Shift Characteristics
-- Determine shift distance and shift direction for all proteins and store in a df
-- Shift distance is calculated using caluculations of CoM (Center of Mass) for Ctrl and RNAse and caluculating deviation
-- Shift direction is specified as +1, 0 or -1; +1 is a left-shift, -1 a right shift
-- Caluculated on normalised data (average of triplicates)
-```{r}
-# fractions = x
-x <- 1:25
+# Shift Characteristics - Lina
+To quantify positional shifts in protein profiles between Ctrl and RNase conditions, we calculate the Center of Mass (CoM) for each protein.
+The CoM is a weighted average of all fraction positions, where weights are the normalized intensity values.
 
-# empty vectors for results (with length of number of proteins)
+CoM is defined as:
+   Σ(intensity × fraction) / Σ(intensity)
+
+Since we did not apply Gaussian fitting, a direct peak-to-peak comparison between Ctrl and RNase was difficult and unreliable. 
+Using the CoM allows us to include both position and intensity information and proofed to be a robust, single-value summary of the overall protein distribution.
+
+Based on this, we calculate:
+ - Shift distance: difference between CoM_Ctrl and CoM_RNase
+ - Shift direction: +1 = left-shift, –1 = right-shift, 0 = no shift
+
+! NOTE:CoM-based shift calculations were later repeated per replicate and used for statistical testing (t-test) to identify significantly shifting RBPs.
+```{r}
+# Initialize result vectors (one value per protein)
 CoM_Ctrl <- numeric(nrow(MS_Table_Norm))
 CoM_RNase <- numeric(nrow(MS_Table_Norm))
 shift_distance <- numeric(nrow(MS_Table_Norm))
 shift_direction <- numeric(nrow(MS_Table_Norm))
 
-# for loop over every protein
+# Iterate over all proteins and calculate shift using center of mass
 for (p in seq_len(nrow(MS_Table_Norm))) {
   
-  # extract values for Ctrl and RNase
+   # Extract normalized intensities for Ctrl and RNase
   row_vals <- as.numeric(MS_Table_Norm [p,])
   ctrl_vals <- row_vals[seq(1, 50, by =2)]
   rnase_vals <- row_vals[seq(2, 50, by=2)]
   
-  # calculate CoM, shift distance and shift direction
+  # Calculate Center of Mass for both conditions
   CoM_Ctrl[p] <- sum(ctrl_vals * x) / sum(ctrl_vals)
   CoM_RNase[p] <- sum(rnase_vals * x) / sum(rnase_vals)
+  
+  # Compute shift distance and direction
   shift_distance[p] <- CoM_Ctrl[p] - CoM_RNase[p] 
   shift_direction[p] <- sign(shift_distance[p]) 
 }
 
-# store results in new dataframe 
+# Store results into a single dataframe
 Shift_Data <- data.frame(
   CoM_Ctrl = CoM_Ctrl,
   CoM_RNase = CoM_RNase,
   shift_distance = shift_distance,
   shift_direction = shift_direction,
   row.names = rownames(MS_Table_Norm))
-
-head(Shift_Data)
-
-#numer of proteins with shift based on average values (just for interesst, delete later)
-sum(Shift_Data$shift_distance > 1, na.rm = TRUE)
 ```
 
 ##T-Test
-### First Normalization of whole MS_Table to 100 -Cihan
+### First Normalization of whole MS_Table to 100 - Cihan
 - We decided to run the statistical test on normalised values, so all replicates need to be normalised to 100
 ```{r}
 # Split up all Ctrl and RNAse values and their individual Reps 
@@ -491,9 +496,10 @@ rownames(CoM_Data_for_t) <- rownames(Norm_Data_for_t)
 head(CoM_Data_for_t)
 ```
 
-### Calculating Shift-Values for T-Test - Lina
-- Calculate deviation between CoM of Ctrl and CoM of RNase and store in df for t-test 
+### Calculating Shift-Distance for T-Test - Lina
 ```{r}
+# For each protein, subtract the RNase CoM from the corresponding Ctrl CoM across all three replicates to obtain replicate-wise shift distances.
+# Columns 1–3 = Ctrl_Rep1–3, Columns 4–6 = RNase_Rep1–3 (in CoM_Data_for_t)
 Shift_Data_for_t <- data.frame(
   shift_distance_rep1 = CoM_Data_for_t[, 1] - CoM_Data_for_t[, 4],
   shift_distance_rep2 = CoM_Data_for_t[, 2] - CoM_Data_for_t[, 5],
@@ -501,8 +507,7 @@ Shift_Data_for_t <- data.frame(
   row.names = rownames(CoM_Data_for_t)
 )
 
-head(Shift_Data_for_t)
-any(is.na(Shift_Data_for_t))
+# Count how many missing values (NA) are present across all shift distances. (proteins where CoM could not be calculated in at least one replicate)
 sum(is.na(Shift_Data_for_t))
 ```
 
@@ -564,9 +569,13 @@ head(Shift_Data)
 ```
 
 ## Plot T-Test Results - Lina
+GOAL: Plot t-test results by visualizing CoM positions in Ctrl vs. RNase 
 ```{r}
 library(ggplot2)
 library(dplyr)
+
+# Create scatter plot of CoM values in Ctrl (x) vs. RNase (y) for all proteins
+# Color points based on t-test result (significant or not)
 ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
   `significant_ttest_filtered` ~ "Significant Left Shift / RBPs",
     TRUE ~ "No significant Shift"
@@ -584,120 +593,162 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
 ```
 
 ## Validation of T-Test with UniProt Data -Lina
+To assess the validity of our T-test-based identification of RNA-binding proteins (RBPs), we compare the results with annotated human RBPs from UniProt.
+
+This includes:
+- Overlap analysis between our tested proteins and known UniProt RBPs
+- Calculation of a hit rate (percentage of known RBPs detected as T-test positives)
+- Validation with literature-supported positive and negative control proteins
 ```{r}
 library(glue)
 
-#loading list of uniprot RBPs (HUMAN)
-uniprot_rbps <- read.delim("uniprotkb_RNA_binding_HUMAN_AND_model_o_2025_06_09.tsv", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+# Load annotated RNA-binding proteins (RBPs) from UniProt (human-specific)
+uniprot_rbps <- read.delim("uniprotkb_RNA_binding_HUMAN_AND_model_o_2025_06_09.tsv", 
+                           header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
-#comparison of uniprot RBPs with our T-Test positive RBPs
+# Extract UniProt entry names (used for matching)
 known_rbps <- uniprot_rbps$Entry.Name
-
-t_test_positives <- rownames(Shift_Data[Shift_Data$significant_ttest_filtered == TRUE & !is.na(Shift_Data$significant_ttest_filtered), ])
-
-overlap_MS_Table <- intersect(rownames(MS_Table), known_rbps)
-overlap_t_test <- intersect(t_test_positives, known_rbps)
-
 glue("Number of known RBPs in UniProt: {length(known_rbps)}")
+
+# Extract RBP candidates identified by T-test
+t_test_positives <- rownames(
+  Shift_Data[Shift_Data$significant_ttest_filtered == TRUE & 
+               !is.na(Shift_Data$significant_ttest_filtered), ])
+
+# Determine overlap: known RBPs present in our dataset
+overlap_MS_Table <- intersect(rownames(MS_Table), known_rbps)
 glue("Number of UniProt RBPs tested with R-DeeP: {length(overlap_MS_Table)}")
+
+# Determine overlap: known RBPs that were also T-test positive
+overlap_t_test <- intersect(t_test_positives, known_rbps)
 glue("Number identified as RBPs (T-Test positive): {length(overlap_t_test)}")
 glue("Hit rate: {round(length(overlap_t_test)/length(overlap_MS_Table)*100, 2)}%")
 
-# validation of test using three listed positive and negative controls
+# Positive Control Validation
 
-# RBM10, SMN1 and FMR1 have been listed many times as RBPs (Quellen raussuchen)
-pos_controls <- c("RBM10_HUMAN", "SMN_HUMAN", "FMR1_HUMAN")
-pos_df <- data.frame(
-  Protein_Postive_Control = pos_controls,
-  InDataset = pos_controls %in% rownames(MS_Table),
-  TTest = pos_controls %in% t_test_positives)
+  # RBM10, SMN1, and FMR1 are well-documented RBPs (literature-supported)
+  pos_controls <- c("RBM10_HUMAN", "SMN_HUMAN", "FMR1_HUMAN")
 
-print(pos_df)
+  # Check whether they are in our dataset and classified as T-test positives
+  pos_df <- data.frame(
+    Protein_Postive_Control = pos_controls,
+    InDataset = pos_controls %in% rownames(MS_Table),
+    TTest = pos_controls %in% t_test_positives)
+  print(pos_df)
 
-# ATP5F1A, SDHB and COX4I1 are often used as negative controls(Quellen raussuchen)
-neg_controls <- c("ACTB_HUMAN", "SDHB_HUMAN", "COX41_HUMAN")
-neg_df <- data.frame(
-  Protein_Negative_Control = neg_controls,
-  InDataset = neg_controls %in% rownames(MS_Table),
-  TTest = neg_controls %in% t_test_positives)
-
-print(neg_df)
+# Positive Control Validation
+  
+  # ACTB, SDHB, and COX4I1 are typically not considered RNA-binding (negative controls)
+  neg_controls <- c("ACTB_HUMAN", "SDHB_HUMAN", "COX41_HUMAN")
+  
+  # Same check as above for negatives
+  neg_df <- data.frame(
+    Protein_Negative_Control = neg_controls,
+    InDataset = neg_controls %in% rownames(MS_Table),
+    TTest = neg_controls %in% t_test_positives)
+  print(neg_df)
 ```
 
 ###Plot Validation of T-test with UniProt Data -Lina
+This plot extends the CoM-based T-test visualization by highlighting known RBPs from UniProt.
+This view helps assess the sensitivity and limitations of the shift-based identification method relative to external RBP annotations.
 ```{r}
 library(ggplot2)
 library(dplyr)
+
+# Create data subset of proteins for highlighting (was nessesary for coloring sequence)
 highlight_data <- subset(Shift_Data,
                          rownames(Shift_Data) %in% overlap_t_test |
                          rownames(Shift_Data) %in% not_indentified |
                          significant_ttest_filtered)
 
+# Classify each protein into a color group
 highlight_data$color_group <- case_when(
   rownames(highlight_data) %in% overlap_t_test ~ "Overlaping with UniProt",
   rownames(highlight_data) %in% not_indentified ~ "UniProt Proteins not identified",
   highlight_data$significant_ttest_filtered ~ "Significant Left Shift / RBPs"
 )
+
+# Control transparency depending on group
 highlight_data$alpha_group <- case_when(
   highlight_data$color_group == "Overlaping with UniProt" ~ "high",
   highlight_data$color_group == "UniProt Proteins not identified" ~ "high",
   highlight_data$color_group == "Significant Left Shift / RBPs" ~ "low"
 )
 
+# Base plot: all proteins shown in background
 ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
+  
+    # Background: all non-highlighted proteins in light gray
     geom_point(aes(color = "No significant Shift"), alpha = 0.3, show.legend = FALSE) +
+  
+    # Highlighted groups: UniProt hits, misses, and T-test positives
     geom_point(data = highlight_data,
              aes(color = color_group, alpha = alpha_group)) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray20") +
-  scale_color_manual(name = "Significance as RBP",values = c(
+    scale_color_manual(name = "Significance as RBP",values = c(
     "No significant Shift" = "gray80",
     "Significant Left Shift / RBPs" = "gray40",
     "Overlaping with UniProt" = "lightcoral",
     "UniProt Proteins not identified" = "darkred"
-  ))+
-  scale_alpha_manual(values = c("high" = 0.9, "low" = 0.3), guide = "none") + 
+    ))+
+    scale_alpha_manual(values = c("high" = 0.9, "low" = 0.3), guide = "none") +
+  
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray20") +
   labs(title = "Validation of T-Test: Comparing with UniProt Data",
        x = "CoM Ctrl",
        y = "CoM RNase") +
   theme_minimal()
 ```
 
-### Analyse Verbesserungen T-Test (FALSE NEGATIVE RATE)????? -Lina
--> learnings so far: Bsp. HTSF1 aufgrund von Normalverteilung FALSE rausgeflogen (klarer Shift erkennbar), LSM8 auch, aber kein Shift (SNRPA)
---> RPP29_HUMAN zeigt immer Shift über 1 aber anscheinend nicht signifikant genug??? p=0,08
---> vielleicht ist 1 Fraktion Shift zu viel? 
---> 36 Proteine sind rausgeflogen weil es nur Daten von RNAse gab / ode nur Ctrl 
---> 31 Proteine sind rausgeflogen weil sie den Normalverteilungstest nicht bestanden haben
---> insgesamt könnte man durch veränderung des Normalisierungszeugs bis zu 10 Prozent der nicht identifizierten Proteine mögl. finden
---> Nur 23 Proteine wären bei alpha = 0.1 dazugekommen
---> von einem Sample aus 40 nicht identifizierten hätte ich bei 6 einen Shift vermutet, 8 sind aufgrund von Normalisierung / fehlenden Angaben (siehe oben) rausgeflogen, d.h. ich würde sagen 81 Prozent der wirklich getesteten Proteine wurden korrekt als nicht RBPs identifiziert, 19 Prozent der getesteten hätten vlt. RBPs werden sollen (mögl. andere Kriterien) 
+### Evaluation of T-Test Limitations -Lina
+
+This section investigates potential false negatives from the T-test-based RBP identification.  
+We explore cases where known RBPs were not classified as significant and examine possible causes:
+
+- **Incomplete data**: 12% of non-identified RBPs were excluded due to missing measurements (e.g., only RNase or only Ctrl values available)  
+- **Violation of normality assumption**: 10% failed the Shapiro-Wilk test for normal distribution (e.g., HTSF1, LSM8)  
+- **Marginal p-values**: ~8% exhibited consistent shifts but did not reach significance (e.g., RPP29_HUMAN with p = 0.08)
+
+Manual inspection of 40 non-identified RBPs suggests a false negative rate of approximately 19% within the testable subset.  
+From a sample of 40 T-test-positive proteins, only 2 would have been visually rejected as RBPs, corresponding to a 5% false positive rate. 
+Furthermore, of all proteins with p-values > 0.045 (n = 18), only 4 were judged inconsistent with an RBP-like shift profile,  
+suggesting that most borderline cases still show convincing shift patterns.
 
 ```{r}
-### alle Uniprot Proteine die nicht gefunden wurden
+#Identify known UniProt RBPs not found by T-Test
 not_indentified <- known_rbps[! known_rbps %in% t_test_positives & known_rbps %in% rownames(MS_Table)]
+
+# Total "missed" RBPs present in dataset
 length(not_indentified)
 
-sum(is.na(Shift_Data[not_indentified, "shapiro_p"]))
-sum(Shift_Data[not_indentified, "normal_distributed"] == FALSE)
-sum(Shift_Data[not_indentified, "p_value_ttest_filtered"] < 0.1, na.rm = TRUE)
+# Analyze potential causes
+sum(is.na(Shift_Data[not_indentified, "shapiro_p"])) /length(not_indentified) # Missing Shapiro results because of missing values
+sum(Shift_Data[not_indentified, "normal_distributed"] == FALSE) / length(not_indentified) # Failed normality
+sum(Shift_Data[not_indentified, "p_value_ttest_filtered"] < 0.1, na.rm = TRUE) / length(not_indentified) # Would be detected at alpha = 0.1
+
 ```
+
 ```{r}
+#Visual inspection of a sample of non-identified proteins
 sample_not_identified <- head( not_indentified, 40)
 for (s in sample_not_identified ){
   plot_protein(s)
 }
-
+# Display statistical values for this subset
 print(Shift_Data_for_t[sample_not_identified,])
 print(Shift_Data[sample_not_identified, c("shapiro_p","normal_distributed","p_value_ttest_filtered","significant_ttest_filtered")])
 ```
---> Learnings: ich hätte nur 2 von 40 Proteinen der t_test_postives (sample) nicht als RBP eingeordnet (5% false positives, wie alpha)
---> von allen t_test_postives mit einem p_value über 0.045 (insg. 18) hätte ich trotzdem nur 4 nicht als RBP eingeordnet
+
 ```{r}
+#Visual inspection of a sample of T-Test positive proteins
 sample_t_test_positives <-head(t_test_positives,40)
 for (s in sample_t_test_positives){
   plot_protein(s)
 }
+```
 
+```{r}
+# Visual inspection of proteins with marginally significant p-values (above 0.045)
 t_test_positives_critical_p_value <- rownames(
   Shift_Data[
     Shift_Data$significant_ttest_filtered == TRUE &
@@ -710,7 +761,9 @@ for (s in t_test_positives_critical_p_value){
 }
 ```
 
-## T-Test for non-synchronised HELA Cells (Copied and adjusted Pipeline) - Lina
+## T-Test for non-synchronised HELA Cells - Lina
+This section reproduces all necessary pipeline steps with adjusted variable names.  
+All variables related to the non-synchronized dataset are suffixed with `_NS`.
 ```{r}
 #loading Data
 MS_Table_NS <- read.table("RDeeP_HeLa_NS.csv", header = TRUE, row.names = 1, sep = ";")
@@ -923,68 +976,79 @@ table(Shift_Data_NS$significant_ttest_filtered, useNA = "ifany")
 ```
 
 #Comparison of Proteins found as RBP in Mitosis vs. in NS_Hela - Lina
+This section compares proteins identified as RNA-binding by T-test in mitotic vs. non-synchronized HeLa cells.  
+We analyze the overlap between datasets, list proteins uniquely shifted during mitosis, and visualize differences in shift characteristics.
+Finally, a scatterplot compares shift distances across both conditions and highlights condition-specific RBPs.
 ```{r}
-# View Numbers
 library(glue)
+
+# Identify proteins classified as significant RBPs in non-synchronized HeLa cells
 t_test_positives_NS <- rownames(Shift_Data_NS[Shift_Data_NS$significant_ttest_filtered == TRUE & !is.na(Shift_Data_NS$significant_ttest_filtered), ])
 
+# Determine protein overlap across datasets
 overlap_analysis <- intersect(rownames(MS_Table_NS), rownames(MS_Table))
-overlap_t_test_positivs <- intersect(t_test_positives, t_test_positives_NS)
-RBPs_Mitosis <- setdiff(t_test_positives, t_test_positives_NS)
-RBPs_Mitosis <- intersect(RBPs_Mitosis, overlap_analysis)
-
 glue("Number of Proteins in sample NS_Hela: {length(rownames(MS_Table_NS))}")
 glue("Number of Proteins analysed in both samples: {length(overlap_analysis)}")
+
+# Identify proteins found as RBPs in both conditions
+overlap_t_test_positivs <- intersect(t_test_positives, t_test_positives_NS)
 glue("Number of RBPs found in both samples: {length(overlap_t_test_positivs)}")
+
+# Identify RBPs found *only* in mitosis, and also present in both datasets
+RBPs_Mitosis <- setdiff(t_test_positives, t_test_positives_NS)
+RBPs_Mitosis <- intersect(RBPs_Mitosis, overlap_analysis)
 glue("Number RBPs found only in Mitosis: {length(RBPs_Mitosis)}")
 
-# View Examples
-sample_RBPs_Mitosis <- head(RBPs_Mitosis,20)
+
+# Display a sample of plots (mitosis and non-synchronised) of RBPs uniquely active in mitosis
+sample_RBPs_Mitosis <- head(RBPs_Mitosis,10)
 for (r in sample_RBPs_Mitosis){
   plot_protein(r)
   plot_protein_NS(r)
 }
 
-# View Clustering
+# Visualise differences in shift characteristics
 
-# build new dataframe with clustering Data containing only proteins of both samples
+# Define variables to extract from both datasets
 cols_to_extract <- c("CoM_Ctrl", "CoM_RNase", "shift_distance", "shift_direction", "p_value_ttest_filtered", "significant_ttest_filtered")
 
+# Subset and rename columns for both conditions
 subset_data_S <- Shift_Data[overlap_analysis, cols_to_extract]
 subset_data_NS <- Shift_Data_NS[overlap_analysis, cols_to_extract]
 colnames(subset_data_S) <- paste0(colnames(subset_data_S), "_mitosis")
 colnames(subset_data_NS) <- paste0(colnames(subset_data_NS), "_nonSync")
 
+# Merge into one combined dataframe
 Shift_Data_Combined <- cbind(subset_data_S,subset_data_NS)
 head(Shift_Data_Combined)
 
-#scatterplot shift_distance
+#Scatterplot of shift distances
+
 library(ggplot2)
 library(dplyr)
-ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`, y = `shift_distance_nonSync`, color = case_when(
-  !`significant_ttest_filtered_mitosis` & !`significant_ttest_filtered_nonSync` ~ "No significant RBPs",
-  `significant_ttest_filtered_mitosis` & !`significant_ttest_filtered_nonSync` ~ "RBPs only active in Mitosis",
-  !`significant_ttest_filtered_mitosis` & `significant_ttest_filtered_nonSync` ~ "RBPs not active in Mitosis",
-    TRUE ~ "RBPs always active"
-  ))) +
+
+ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`,
+                                y = `shift_distance_nonSync`,
+                                color = case_when(
+                                  !`significant_ttest_filtered_mitosis` & !`significant_ttest_filtered_nonSync` ~ "No significant RBPs",
+                                  `significant_ttest_filtered_mitosis` & !`significant_ttest_filtered_nonSync` ~ "RBPs only active in Mitosis",
+                                  !`significant_ttest_filtered_mitosis` & `significant_ttest_filtered_nonSync` ~ "RBPs not active in Mitosis",
+                                  TRUE ~ "RBPs always active"
+                                  ))) +
   geom_point(alpha = 0.6) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
-  scale_color_manual(name = "Significance as RBP",values = c(
-    "No significant RBPs" = "grey80",
-    "RBPs not active in Mitosis" = "gray30",
-    "RBPs always active" = "lightcoral",
-    "RBPs only active in Mitosis" = "darkred"
-  ))+
+  scale_color_manual(name = "Significance as RBP",
+                     values = c(
+                       "No significant RBPs" = "grey80",
+                       "RBPs not active in Mitosis" = "gray30",
+                       "RBPs always active" = "lightcoral",
+                       "RBPs only active in Mitosis" = "darkred"
+                       ))+
   labs(title = "Shift Distance: Mitosis vs. Non-Synchronized",
        x = "Shift Distance (Mitosis)",
        y = "Shift Distance (Non-Synchronized)") +
   theme_minimal()
 ```
-
-
-
-
-
 
 #Clustering to find posible RBP complexes in our RBPs in Mitosis: Sofia and Cihan (1-5)
 
@@ -1290,8 +1354,6 @@ ggplot(score_results, aes(x = eps, y = minPts, fill = score)) +
 
 
 
-
-
 # Additional Data for all Proteins using Uniprot and CORUM -Lina
 (carefull runs 35 min!!!... grab a coffee :)
 ```{r}
@@ -1378,6 +1440,76 @@ length(unique_proteins) #5205 proteins
 n_human_complexes <- unique(corum$complex_id)
 length(n_human_complexes) #5366 complexes
 ```
+
+## New Plot Protein function with all additional data
+
+```{r}
+plot_protein_info <- function(x) {
+  
+  #split up plot area
+  layout(matrix(1:2, nrow = 1), widths = c(4, 2))  # 3:2 Verhältnis (Plot : Info)
+  par(mar = c(5, 4, 4, 1))
+  
+  #extract data, define all variables and range of x- and y-achsis
+  protein_of_interest <- x 
+  protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
+  ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
+  rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
+  fractions <- 1:25
+  max_val <- max(ctrl_values, rnase_values, na.rm = TRUE)
+  ylim_range <- c(0, max_val * 1.2)
+
+  #core plot function using crtl_values
+  plot(fractions, ctrl_values, type="o", pch=20, lty=1, lwd = 1.5,  col="forestgreen", ylim= ylim_range,
+       xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest, axes = FALSE)
+       
+  #add line for rnase_values
+  lines(fractions, rnase_values, type="o",pch =20, lty=1, lwd = 1.5,  col="firebrick3")
+  
+  #color area under the curve
+  polygon(c(fractions, rev(fractions)), 
+          c(ctrl_values, rep(0, length(ctrl_values))), 
+          col=adjustcolor("forestgreen", alpha.f=0.1), border=NA)
+  
+  polygon(c(fractions, rev(fractions)), 
+          c(rnase_values, rep(0, length(rnase_values))), 
+          col=adjustcolor("firebrick3", alpha.f=0.1), border=NA)
+  
+  #add x- and y-achsis with correct lables
+  axis(1, at = 1:25, labels = 1:25, cex.axis = 0.7)
+  axis(2, cex.axis = 0.7, las =2)
+  grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted", lwd = 0.8)
+
+  #add legend
+  legend("topright", legend=c("Ctrl", "RNase"), col=c("forestgreen", "firebrick3"), 
+         lty=1, lwd = 1.5,  pch=20, bg = "white", bty = "o", box.col = NA, horiz = TRUE)
+  
+  #Info panel
+  par(mar = c(0, 0, 2, 0))  # rechte Fläche: keine Achsen
+  plot.new()
+  
+  shift_info <- subset_data_S[rownames(subset_data_S) == x, ]
+  protein_info <- protein_data[protein_data$Entry == x, ]
+  info_lines <- c(
+    paste("CoM Ctrl:",round(shift_info$CoM_Ctrl_mitosis, 1)),
+    paste("CoM RNase:", round(shift_info$CoM_RNase_mitosis, 1)),
+    paste("Shift Distance:", round(shift_info$shift_distance_mitosis, 1)),
+    paste("Identified as RBP:", shift_info$significant_ttest_filtered_mitosis),
+    paste("Known Complex (CORUM):", protein_info$CORUM_member),
+    paste("Weight (monomeric):", round(protein_info$MolecularWeight_kDa, 2) ,"kDA")
+  )
+  line_height <- 0.06
+  n_lines <- length(info_lines)
+  y_start <- 0.5 + (n_lines - 1) * line_height / 2
+  for (i in seq_along(info_lines)) {
+    y_pos <- y_start - (i - 1) * line_height
+    text(x = 0, y = y_pos, labels = info_lines[i], adj = c(0, 1), cex = 0.9)
+    }
+}
+
+plot_protein_info("RL27_HUMAN")
+```
+
 
 # Linear Regression Analysis - Trying to predict molecular weight through peak position - Lina
 --> this method can not be used to predict molecular weight, no sufficient correlation or relevant regression model
