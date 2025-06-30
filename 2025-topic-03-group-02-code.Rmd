@@ -143,8 +143,8 @@ plot_protein <- function(x) {
 plot_protein("ANM7_HUMAN") #fill in protein that you wanna see
 ```
 
-## Reproducibility Analysis
-- Description nessesary and all code descriptions in english
+## Reproducibility Analysis : Cihan and Sofia 
+- Goal: Assess how consistent our results are and how much variability comes from our data. For this, correlation is calculated for all combinations of fractions across all Ctrl and RNase samples and all repetitions. Logically, the diagonal shows a correlation with p-value = 1. Additionally, we expect a correlation of 1 for the same Ctrl/RNase condition and the same fraction across different repetitions. For the rest of the combinations, we expect very low correlation values. We used Spearman correlation for less sensitivity to outlyers. ( ist nicht der punkt von reproduzability auf variability zu testen, bin hier etwas confused). 
 ```{r}
 # Create empty dataframe for correlation 
 full_correlation_results <- data.frame(
@@ -428,10 +428,10 @@ head(Norm_Data_for_t)
 rowSums(Norm_Data_for_t["1433B_HUMAN", ]) 
 ```
 
-### Caluclation of Center of mass (CoM) 
-- CoM (Center of mass) values are calculated for all replicates and treatments and stored in df
+### Caluclation of Center of mass (CoM) : Sofia 
+- Goal:All dimensions of our data, such as multiple peak positions and heights, are simplified for later t-tests (only one value) by using Center of Mass (CoM) values. The CoM is calculated for all replicates and treatments and data comes from Norm_Data_for_t (normalised Data) and stored in a data frame. It represents the weighted average position of a signal: the sum of all fraction numbers multiplied by their intensity values, divided by the total intensity. This way, if a peak is "split" into two in one experiment but not in another, it should not affect the result significantly, as both would have similar CoM values. 
 ```{r}
-# aufstellen von variablen 
+# aufstellen von variablen  
 
 fractions <- 1:25
 conditions <- c("Ctrl", "RNase")
@@ -456,7 +456,7 @@ for (cond in conditions) {
 
     subdata <- subdata[, order(as.numeric(gsub("Fraction(\\d+)_.*", "\\1", cols)))]  #extracts the fraction number from column names.
 
-#center of mass calculation
+#center of mass calculation as discribed above
 
     com <- apply(subdata, 1, function(x) {
       sum(x * fractions) / sum(x)
@@ -469,7 +469,6 @@ for (cond in conditions) {
 
 #convert list to dataframe
 
-# After the loops have finished:
 CoM_Data_for_t <- as.data.frame(results_com)   # convert list into data frame
 
 # Add correct rownames:
@@ -972,6 +971,7 @@ ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`, y = `shift_distanc
 
 
 #Clustering to find posible RBP complexes in our RBPs in Mitosis
+
 
 ```{r}
 #from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis 
