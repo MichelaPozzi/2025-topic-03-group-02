@@ -1350,18 +1350,19 @@ ggplot(score_results, aes(x = eps, y = minPts, fill = score)) +
 
 ```
 
+# Additional Data for all Proteins using Uniprot and CORUM -Lina (carefull runs 35 min!!!... grab a coffee :)
 
+GOAl: Build Datframe with Annotations for further analyses such as testing for RNA-dependent complexes
+or predicting molecular weight from peak position.
+- Molecular weights retrieved via the UniProt REST API
+- Complex membership based on the CORUM database (HUMAN complexes only)
 
-
-
-# Additional Data for all Proteins using Uniprot and CORUM -Lina
-(carefull runs 35 min!!!... grab a coffee :)
 ```{r}
 library(httr)
 library(jsonlite)
 library(pbapply)  # für Fortschrittsbalken bei langen Listen
 
-# Function für accession ids aus Uniprot
+# Map each protein's UniProt entry name to its accession ID
 get_accession_from_entryname <- function(entry_name) {
   url <- paste0("https://rest.uniprot.org/uniprotkb/search?query=", entry_name, "&fields=accession&format=json&size=1")
   res <- try(GET(url), silent = TRUE)
@@ -1376,7 +1377,8 @@ get_accession_from_entryname <- function(entry_name) {
   return(data$results[[1]]$primaryAccession)}
     
 }
-# Funktion zum Abrufen der Masse für eine UniProt-ID
+
+# Function to retrieve the molecular weight from UniProt for each accession ID
 get_uniprot_mass <- function(accession_ids) {
   url <- paste0("https://rest.uniprot.org/uniprotkb/", accession_ids, ".json")
   res <- try(GET(url), silent = TRUE)
@@ -1387,70 +1389,66 @@ get_uniprot_mass <- function(accession_ids) {
   return(data$sequence$molWeight)
 }
 
+# Apply both functions to the MS_Table entries
 entry_names <- rownames(MS_Table)
 accession_ids <- pbsapply(entry_names, get_accession_from_entryname)
 masses <- pbsapply(accession_ids, get_uniprot_mass)
 
-#Wichtig, da wir massen unlisten müssen, und 5 Proteine als NA gespeichert werden müssen
+# Convert mass results into numeric vector (set to NA for proteins with failed retrieval)
 masses_vec <- rep(NA_real_, length(accession_ids))
 names(masses_vec) <- accession_ids
 valid_idx <- which(!sapply(masses, is.null))
 masses_vec[valid_idx] <- as.numeric(unlist(masses[valid_idx]))
 
-# DataFrame bauen
+# Create annotated dataframe with UniProt and molecular weight
 protein_data <- data.frame(
   Entry = entry_names,
   UniProtAccession = accession_ids,
   MolecularWeight_kDa = masses_vec / 1000
 )
 
-# Load Data from Corum (all HUMAN Complexes)
+# Load CORUM data (human protein complexes only)
 library(data.table)
 corum <- fread("corum_humanComplexes.txt", sep = "\t", header = TRUE) 
 
-#build new table, with colum UniProtAcession and ComplexName 
+# Expand CORUM entries /Unlist so each UniProt ID is listed individually with its complex name
 corum_expanded <- corum[, .(
   UniProtAccession = unlist(strsplit(subunits_uniprot_id, ";"))
 ), by = .(ComplexName = complex_name)]
 
 corum_expanded <- unique(corum_expanded)
 
-#add a new column to dataframe for additional protein data, and assign TRUE/FALSE if found /not found in CORUM
+#Add binary Expression wheather protein is part of any complex in CORUM?
 protein_data$CORUM_member <- protein_data$UniProtAccession %in% corum_expanded$UniProtAccession
 
-#build new table, with column for complex names, assigning each protein all corresponding protein names
+#Link all complex names associated with each protein (multiple allowed)
 corum_complex_list <- corum_expanded[, .(
   CORUM_complex_names = paste(unique(ComplexName), collapse = "; ")
 ), by = UniProtAccession]
 
-#add complex Names to protein data
+#Add complex names to protein data
 protein_data <- merge(protein_data, corum_complex_list, by = "UniProtAccession", all.x = TRUE, sort = FALSE)
 protein_data$CORUM_member <- !is.na(protein_data$CORUM_complex_names)
 
-#infos 
-head(protein_data)
-sum(is.na(protein_data$MolecularWeight_kDa)) # number of proteins, where no molecular weight was avalible 
-sum(protein_data$CORUM_member== TRUE) # number of our proteins known to be in complex 
+# Background info — total number of unique proteins and complexes in CORUM
+n_human_complexes <- unique(corum$complex_id)
+length(n_human_complexes) # number of complexes
 
-# how many proteins and complexes ar listed in this dataset (Human) 
 all_proteins <- unlist(strsplit(corum$subunits_uniprot_id, ";"))
 unique_proteins <- unique(all_proteins)
-length(unique_proteins) #5205 proteins
+length(unique_proteins) # number of proteins in complexes
 
-n_human_complexes <- unique(corum$complex_id)
-length(n_human_complexes) #5366 complexes
+sum(protein_data$CORUM_member== TRUE) # number of our proteins known to be in complex 
 ```
 
 ## New Plot Protein function with all additional data
-
 ```{r}
 plot_protein_info <- function(x) {
   
-  #split up plot area
+  #Split up plot area
   layout(matrix(1:2, nrow = 1), widths = c(4, 2))  # 3:2 Verhältnis (Plot : Info)
-  par(mar = c(5, 4, 4, 1))
   
-  #extract data, define all variables and range of x- and y-achsis
+  #Extract data, define all variables and range of x- and y-achsis
   protein_of_interest <- x 
   protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
   ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
@@ -1459,14 +1457,14 @@ plot_protein_info <- function(x) {
   max_val <- max(ctrl_values, rnase_values, na.rm = TRUE)
   ylim_range <- c(0, max_val * 1.2)
 
-  #core plot function using crtl_values
+  #Core plot function using crtl_values
   plot(fractions, ctrl_values, type="o", pch=20, lty=1, lwd = 1.5,  col="forestgreen", ylim= ylim_range,
        xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest, axes = FALSE)
        
-  #add line for rnase_values
+  #Add line for rnase_values
   lines(fractions, rnase_values, type="o",pch =20, lty=1, lwd = 1.5,  col="firebrick3")
   
-  #color area under the curve
+  #Color area under the curve
   polygon(c(fractions, rev(fractions)), 
           c(ctrl_values, rep(0, length(ctrl_values))), 
           col=adjustcolor("forestgreen", alpha.f=0.1), border=NA)
@@ -1475,17 +1473,17 @@ plot_protein_info <- function(x) {
           c(rnase_values, rep(0, length(rnase_values))), 
           col=adjustcolor("firebrick3", alpha.f=0.1), border=NA)
   
-  #add x- and y-achsis with correct lables
+  #Add x- and y-achsis with correct lables
   axis(1, at = 1:25, labels = 1:25, cex.axis = 0.7)
   axis(2, cex.axis = 0.7, las =2)
   grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted", lwd = 0.8)
 
-  #add legend
+  #Add legend
   legend("topright", legend=c("Ctrl", "RNase"), col=c("forestgreen", "firebrick3"), 
          lty=1, lwd = 1.5,  pch=20, bg = "white", bty = "o", box.col = NA, horiz = TRUE)
   
-  #Info panel
-  par(mar = c(0, 0, 2, 0))  # rechte Fläche: keine Achsen
+  # Add Info panel
+  par(mar = c(0, 0, 2, 0))
   plot.new()
   
   shift_info <- subset_data_S[rownames(subset_data_S) == x, ]
@@ -1512,13 +1510,17 @@ plot_protein_info("RL27_HUMAN")
 
 
 # Linear Regression Analysis - Trying to predict molecular weight through peak position - Lina
---> this method can not be used to predict molecular weight, no sufficient correlation or relevant regression model
---> Possible reasons: 
-- position in gradient not only depends on weight and but also densitiy and shape of the protein
-- proteins remain in RNA independend complexes after RNase treatment (we tried to exclude all proteins listed in complexes in CORUM databank, however there was still no relevant correlation)
-- model using max peak position or CoM are to simplified (data is much more complex)
+GOAL: Investigate whether a linear model predicting molecular weight based on RNase values of this method (maximal peak position)can predict the molecular weight of proteins after RNase treatment.
+
+-->  Conclusion: This approach does NOT yield a valid predictive model!
+Possible reasons include:
+- Elution position depends not only on mass, but also shape and density of the protein.
+- Many proteins remain in RNA-independent protein complexes even after RNase treatment.(However, even after removing CORUM complex proteins, no strong correlation appears)
+- Maximal Peak Position is not the correct parameter to predict molecular weight (However, also parameter CoM showed no correlation)
+- Peak-based features (e.g. max position or CoM) are too simplistic for modeling this complex system
+
 ```{r}
-# Find maximal peak position of each protein and build data frame together mit data for molecular weight
+# Extract the position of the strongest (highest) peak for each protein in the RNase condition
 max_peak_positions <- numeric(nrow(Peak_Data))
 
 for (p in seq_len(nrow(Peak_Data))) {
@@ -1534,38 +1536,41 @@ for (p in seq_len(nrow(Peak_Data))) {
   }
   
 }  
-Protein_Data_for_LR <- data.frame(max_peak_position_RNase = max_peak_positions)
+# Combine with molecular weight and center of mass information
+Protein_Data_for_LR <- data.frame(
+  max_peak_position_RNase = max_peak_positions,
+  MolecularWeight_kDa = protein_data$MolecularWeight_kDa,
+  CoM_RNase = Shift_Data$CoM_RNase
+)
 rownames(Protein_Data_for_LR) <- rownames(Peak_Data)
 
-Protein_Data_for_LR$MolecularWeight_kDa <- protein_data$MolecularWeight_kDa
-Protein_Data_for_LR$CoM_RNase <- Shift_Data$CoM_RNase
-
-# Try linear regression with maximum peak position
-
-# Correlation tests for molecular weight with maximal peak position 
+# Spearman correlation: molecular weight vs. strongest peak position
 cor.test(Protein_Data_for_LR$max_peak_position_RNase,
          Protein_Data_for_LR$MolecularWeight_kDa,
          method = "spearman", use = "complete.obs")
 
-# Linear regression models for molecular weight prediction with maximal peak position
+# Linear model: can we predict molecular weight from peak position?
 lm_model_peak_position <- lm(MolecularWeight_kDa ~ max_peak_position_RNase, data = Protein_Data_for_LR)
 summary(lm_model_peak_position)
 
-# five reference proteins analysed with known molecular weight and fraction by Caudron et al.
+# 5 reference proteins with known molecular weight and elution fraction (Caudron et al.)
 reference_proteins <- data.frame(
    x = c(3, 6, 9, 11, 14),
    y = c(14, 65, 160, 240, 480),
    name = c("RNaseA 14kDa", "BSA 65kDa", "Aldolase 4*40kDa", "Catalase 4*60kDa", "Ferritin 4*40 kDa") 
 )
+
+# Linear fit through reference points
 linear_reference <- lm(y ~ x, data = reference_proteins)
 
-# Scatter plots of molecular weight and maximal peak position, with "expected" linear correlation and complex data
-
+# Extract subset of CORUM-listed complex members (for highlighting in scatter plot)
 CORUM_comlexes <- protein_data[protein_data$CORUM_member == TRUE, ]
 CORUM_comlexes <- Protein_Data_for_LR[rownames(Protein_Data_for_LR) %in% CORUM_comlexes$Entry, ]
 
 library(ggplot2)
 library(dplyr)
+
+# Scatter plot with reference line and annotations
 ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_peak_position_RNase, y = MolecularWeight_kDa)) +
   geom_point(aes(color = "All analysed Proteins")) +
   geom_point(data = CORUM_comlexes,aes(x = max_peak_position_RNase, y = MolecularWeight_kDa, color = "Proteins in Complex (CORUM)"),alpha = 0.5)  +
@@ -1583,36 +1588,6 @@ ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_
   scale_color_manual(values = c("All analysed Proteins" = "gray75", "Proteins in Complex (CORUM)" = "lightcoral")) +
   labs(x = "Peak Position", y = "Molecular Weight (kDa)", color = "Protein Category", 
     title = "Molecular Weight vs. Peak Position ")
-
-#Same but this time trying with CoM
-
-# Correlation
-cor.test(Protein_Data_for_LR$CoM_RNase,
-         Protein_Data_for_LR$MolecularWeight_kDa,
-         method = "spearman", use = "complete.obs")
-
-# Linear Regression
-lm_model_CoM <- lm(MolecularWeight_kDa ~ CoM_RNase, data = Protein_Data_for_LR)
-summary(lm_model_CoM)
-
-#Scatter Plot
-ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = CoM_RNase, y = MolecularWeight_kDa)) +
-  geom_point(aes(color = "All analysed Proteins")) +
-  geom_point(data = CORUM_comlexes,aes(x = CoM_RNase, y = MolecularWeight_kDa, color = "Proteins in Complex (CORUM)"),alpha = 0.5)  +
-  geom_abline(intercept = coef(linear_reference)[1], 
-              slope = coef(linear_reference)[2], 
-              color = "darkred", size = 1) +
-  geom_point(data = reference_proteins, aes(x = x, y = y), color = "darkred", size = 3) +
-  geom_text(data = reference_proteins[c(1), ], aes(x = x, y = y, label = name),
-            vjust = -1,   hjust = 0.6, color = "darkred", size = 4, fontface = "bold") +
-  geom_text(data = reference_proteins[c(5), ], aes(x = x, y = y, label = name),
-            vjust = 0.3 ,   hjust = 1.2, color = "darkred", size = 4, fontface = "bold") +
-  geom_text(data = reference_proteins[c(2, 3, 4), ], aes(x = x, y = y, label = name),
-            vjust = 0.3,   hjust = -0.2, color = "darkred", size = 4, fontface = "bold") +
-  theme_classic() + theme(legend.position =  c(0.2, 0.85)) +
-  scale_color_manual(values = c("All analysed Proteins" = "gray75", "Proteins in Complex (CORUM)" = "lightcoral")) +
-  labs(x = "CoM_RNase", y = "Molecular Weight (kDa)",  color = "Protein Category", title = "Molecular Weight vs. CoM_RNase")
-
 ```
 
 # TRY AND ERROR (BackUP)
