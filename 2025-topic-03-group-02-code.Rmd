@@ -983,11 +983,19 @@ ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`, y = `shift_distanc
 
 
 
-#Clustering to find posible RBP complexes in our RBPs in Mitosis
 
+
+
+#Clustering to find posible RBP complexes in our RBPs in Mitosis: Sofia and Cihan (1-5)
+
+#1) Selection of clustering criteria and Hirarchical clustering to look at distribution of values posibel number of clusters
+
+Goal: select necessary parameters/ dimensions, get an idea of the distribution of clusters. Peak data is mainly taken into consideration, specifically peak hight ( not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant, overall. overall similar hight is more important than similar peak fraction. Runs only on RBPS only active in mitosis ( when compared to synchronized cells). Wards method ( euclidean distance applied), !i think here we have to say it didnt work. 
 
 ```{r}
-#from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis 
+#from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis !! hier stimmt was nicht.
+
+library(dplyr)
 
 # 1) Filter only the RBPs relevant in Mitosis 
 
@@ -997,22 +1005,21 @@ filtered_peak_Mitosis <- Peak_Data[rownames(Peak_Data) %in% RBPs_Mitosis, ]
 
 # 2) Selecting only the interesting coloumns creating comon dataframe
 
-merged_filterd_mitosis <- cbind(filtered_shift_Mitosis[, c("CoM_Ctrl", "CoM_RNase", "shift_distance")], filtered_peak_Mitosis[, c("n_peaks_Ctrl", "n_peaks_RNase","peak1_height_Ctrl", "peak1_height_RNase", "peak2_height_Ctrl", "peak2_height_RNase", "peak1_position_Ctrl", "peak1_position_RNase" , "peak2_position_Ctrl", "peak2_position_RNase" )])
+merged_filterd_mitosis <- cbind(
+  filtered_shift_Mitosis[, c("CoM_Ctrl")],
+  filtered_peak_Mitosis %>% select(ends_with("height_Ctrl"))
+)
 
 head(merged_filterd_mitosis)
 
 # 3) clean data for further steps 
 
-# Remove rows with NA values
+# Replace NA values with 0 (when there was no peak there was not protein)
+clean_merged_filterd_mitosis <- merged_filterd_mitosis
+clean_merged_filterd_mitosis[is.na(clean_merged_filterd_mitosis)] <- 0
 
-clean_merged_filterd_mitosis <- na.omit(merged_filterd_mitosis)
 
-# Optionally remove constant columns
-
-clean2_merged_filterd_mitosis <- clean_merged_filterd_mitosis[, apply(clean_merged_filterd_mitosis, 2, function(col) sd(col, na.rm = TRUE) != 0)]
-
-# 4) do hirarchical clustering in order to determin a good k value (number of clusters)
-
+# 4) do hirarchical clustering in order to analize number of clusters that could be found
 
 clean2_merged_filterd_mitosis <- as.matrix(clean2_merged_filterd_mitosis)   # Convert to numeric matrix if it's not already
 
@@ -1021,70 +1028,276 @@ dist_matrix <- dist(clean2_merged_filterd_mitosis)
 
 # Hierarchical clustering with different linkage methods
 hc_ward <- hclust(dist_matrix, method = "ward.D2")
-#hc_average <- hclust(dist_matrix, method = "average")
-#hc_complete <- hclust(dist_matrix, method = "complete")
-#hc_single <- hclust(dist_matrix, method = "single")
 
-# Plot all 4 dendrograms
+# Plot dendrogram
 par(mfrow = c(2, 2))
-#plot(hc_ward, main = "Ward's Method")
-#plot(hc_average, main = "Average Linkage")
-#plot(hc_complete, main = "Complete Linkage")
-#plot(hc_single, main = "Single Linkage")
+#plot(hc_ward, main = "Ward's Method")  was sollte das 
+
 
 plot(hc_ward, labels = FALSE, main = "Ward's Method (no labels)")
 
-# extra )image to save maybe for poster 
+# image for download: 
 
 png("C://Users//Sofi//Desktop//4 Semester//Bioinfo_project//Downloadsdendrogram_large.png", width = 1200, height = 800)
 plot(hc_ward, labels = FALSE, main = "Ward's Method (Large Output)")
 dev.off()
 
-# run k means in order to see how it looks at different number of clusters
-
-# Convert to matrix
-K <- as.matrix(clean2_merged_filterd_mitosis)
-# K-means clustering
-k <- 3                    #number of clusters 
-set.seed(42)
-kmeans_result <- kmeans(K, centers = k) # here i put in my data 
-
-# Reduce to 2D with PCA
-pca_results <- prcomp(K, scale. = TRUE)
-K_2D <- pca_results$x[, 1:2]
-
-# Plot clusters
-plot(K_2D, col = kmeans_result$cluster, pch = 19,
-     main = "K-means Clustering (PCA-reduced 2D)",
-     xlab = "PC1", ylab = "PC2")
-legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 19)
-
 
 ```
-# only k means so i can look at it better
+
+#2) Using DBSCAN algorithm 
+
+Goal: find a clustering method that will highlite proteins which could be working in a complex based on the clustering method. 
+
+DBSCAN is a function that can classify points in low-density regions as "noise." This means clusters are not only defined by distance (like in k-means), but also by density.
+The code I wrote has two important parameters. These parameters are:
+
+ε (epsilon): The maximum distance between two points to be considered neighbors.
+If this number is very small, everything is classified as noise; if it’s too large, noise may be included as relevant (resulting in one huge cluster).
+
+MinPts: The minimum number of neighbors required for a point to be considered a so-called core point.
+A core point must have at least MinPts other points within ε.
+If this value is too low, even single points can form clusters. On the other hand, if it’s too high, only large clusters are formed and smaller ones might not be recognized at all.
+There are also border points, which are within ε distance of a core point but do not have enough neighbors themselves to be core points.
+
+Everything that does not meet these conditions is filtered out and labeled as noise.
 ```{r}
-# Convert to matrix
-K <- as.matrix(clean2_merged_filterd_mitosis)
-# K-means clustering
-k <- 50                   #number of clusters 
-set.seed(42)
-kmeans_result <- kmeans(K, centers = k) # here i put in my data 
+library(dplyr)
 
-# Reduce to 2D with PCA
-pca_results <- prcomp(K, scale. = TRUE)
-K_2D <- pca_results$x[, 1:2]
+# Optionally remove constant columns
 
-# Plot clusters
-plot(K_2D, col = kmeans_result$cluster, pch = 19,
-     main = "K-means Clustering (PCA-reduced 2D)",
-     xlab = "PC1", ylab = "PC2")
-legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 19)
+#clean2_merged_filterd_mitosis <- clean_merged_filterd_mitosis[, apply(clean_merged_filterd_mitosis, 2, function(col) sd(col, na.rm = TRUE) != 0)]
+
+
+# Load libraries => fals nicht installiert mussen die instaliert werden
+#install.packages("dbscan")
+#install.packages("factoextra")
+
+# Load libraries
+library(dbscan)
+library(ggplot2)
+library(factoextra)
+
+
+# Scale data
+scaled_data <- scale(clean2_merged_filterd_mitosis)
+
+# DBSCAN # its important to choose eps and minPts correctly, eps is the max distance for two points to be neighbors, minPts  minimum number of points required to form a dense region ( here i choose x based on the dimension of the data and the averedge protein komplex )
+
+db <- dbscan(scaled_data, eps = 0.7, minPts = 4) # here parameters can be changed
+
+# PCA for plotting
+pca <- prcomp(scaled_data)
+pca_df <- as.data.frame(pca$x[, 1:2])  # PC1 and PC2
+pca_df$cluster <- as.factor(db$cluster)
+pca_df$protein <- rownames(clean2_merged_filterd_mitosis)  # Protein names from cleaned data 
+
+# Plot with noise in grey
+
+ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster, label = ifelse(cluster == 0, "", protein))) +
+  geom_point(size = 2) +
+  geom_text(check_overlap = TRUE, size = 2.5, vjust = -1) +
+  scale_color_manual(values = c("0" = "grey", "1" = "blue", "2" = "red", "3" = "green", "4" = "purple", "5" = "orange")) +
+  theme_minimal() +
+  labs(title = "DBSCAN Clustering of Proteins",
+       subtitle = "Visualized with PCA (2D)",
+       color = "Cluster") +
+  theme(plot.title = element_text(face = "bold"))
+
+# Create table: which proteins are in which cluster
+clustered_proteins <- split(rownames(clean2_merged_filterd_mitosis), db$cluster)
+
+# Print each cluster's members
+for (cl in sort(unique(db$cluster))) {
+  cat(paste0("Cluster ", cl, ifelse(cl == 0, " (noise)", ""), ": "))
+  cat(paste(clustered_proteins[[as.character(cl)]], collapse = ", "))
+  cat("\n\n")
+}
+```
+
+
+# 3)looking at plots of different clusters (Linas code) 
+
+Goal: Looking if the plots look similar or not in order to validate the parameters choosen above. This code can be always run to get a better feeling over clusters 
+```{r}
+# code from ploting a protein to visualize the proteins that seam to make a complex
+# View Examples
+sample_RBPs_Cluster <- c("RL22_HUMAN", "RL23_HUMAN", "RL24_HUMAN", "RL27_HUMAN", "RL30_HUMAN", "RL34_HUMAN", "RLA1_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN", "RS12_HUMAN") # insert names of clustered proteins you want to compare 
+
+for (r in sample_RBPs_Cluster){
+  plot_protein(r)
+}
+
+```
+
+
+# 4)vergleich mit corum daten Ich glaub das müssen wir anders schreiben hier muss die selction von den 91 RBS welche in cluster vorkommen und das man sich dieses exel runterladen kann um sie sich anzuschauen 
+Goal: Finding Proteins that we know work in komplex for further positv/ negativ controlls of our clustering 
+```{r}
+
+# Analysis of Clusters with CORUM data
+RBPs_Mitosis_CORUM_clustered3 <- RBPs_Mitosis_CORUM[RBPs_Mitosis_CORUM %in% c("CLAP1_HUMAN", "ELYS_HUMAN", "KIF14_HUMAN" , "NOP58_HUMAN", "PRPF3_HUMAN", "RBBP6_HUMAN", "RFC1_HUMAN", "ZC11A_HUMAN")]
+
+length(RBPs_Mitosis_CORUM_clustered3)
+
+View(RBPs_Mitosis_CORUM_clustered3)
+
+protein_data[protein_data$Entry %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "SAFB1_HUMAN", "ZCH18_HUMAN"),]
 
 
 ```
 
+<<<<<<< HEAD
 # Additional Data for all Proteins using Uniprot and CORUM -Lina
 (carefull runs 35 min!!!... grab a coffee :)
+=======
+# 5) finding the right parameters to choose the perfect cluster size 
+Goal: getting a good idea of how the picking of the parameters affects our clustering results by trying all combinations and creating a heat map based on the performance on a cluster (selected from exel from previous chunk). For the heatmap we made up following logic. 
+
+a) Based on all combinations from one cluster (positive control):
+
+If two proteins are in the same cluster → +1
+
+If two proteins are in different clusters → -1
+
+If one or both are classified as noise → 0
+
+b) Based on two (or more) unrelated proteins (negative control):
+
+If they end up in the same cluster as our example proteins → -1
+
+If they end up in different clusters → +1
+
+If noise → 0 (I’m least sure about this case)
+
+```{r}
+
+# -------------- PART 1: Creating a loop for all possible combinations for ε between the numbers ( 0.5-1.5) in steps of 0.1 and for MinPts (1-10) in steps of 1 ----------
+
+# 1. Scale the data
+scaled_data <- scale(clean_merged_filterd_mitosis)
+protein_names <- rownames(clean_merged_filterd_mitosis)
+n_proteins <- nrow(scaled_data)
+
+# 2. Create empty data frame to collect results
+results_df <- data.frame(row.names = protein_names)
+
+# 3. Loop over all combinations
+for (eps in seq(0.5, 1.5, by = 0.1)) {
+  for (minPts in 1:10) {
+    
+    # Run DBSCAN
+    db <- dbscan(scaled_data, eps = eps, minPts = minPts)
+    
+    # Store cluster assignments
+    col_name <- paste0("eps_", eps, "_minPts_", minPts)
+    results_df[[col_name]] <- db$cluster
+  }
+}
+
+# 4. Preview result
+head(results_df)
+
+# -------------- PART 2: Creating a loop for all possible combinations for ε between the numbers ( 0.5-1.5) in steps of 0.1 and for MinPts (1-10) in steps of 1 ----------
+
+library(ggplot2)
+library(reshape2)
+
+
+# 1)Define your proteins of interest
+
+target_proteins <- c("RS12_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN") # this would be positiv controll, a complex we know about. 
+
+negative_controls <- c("LPPRC_HUMAN", "UIMC1_HUMAN")  # Here a explenation (biological is needed as to why i choose these )
+
+all_proteins <- c(target_proteins, negative_controls)
+
+# 2) create all pairwise combinations
+
+protein_pairs <- combn(all_proteins, 2, simplify = FALSE)
+
+# --- Step 4: scoring for each DBSCAN setting ---
+score_results <- data.frame()
+
+for (col_name in colnames(results_df)) {
+  
+  cluster_assignments <- as.numeric(results_df[[col_name]])
+  names(cluster_assignments) <- rownames(results_df)
+  
+  pair_scores <- c()
+
+  for (pair in protein_pairs) {
+    p1 <- pair[1]
+    p2 <- pair[2]
+    c1 <- cluster_assignments[p1]
+    c2 <- cluster_assignments[p2]
+
+    # Skip if NA
+    if (is.na(c1) || is.na(c2)) {
+      score <- NA
+
+    # Both are targets
+    } else if (p1 %in% target_proteins && p2 %in% target_proteins) {
+      if (c1 == 0 || c2 == 0) {
+        score <- 0
+      } else if (c1 == c2) {
+        score <- 1
+      } else {
+        score <- -1
+      }
+
+    # One is negative control, one is target
+    } else if ((p1 %in% negative_controls && p2 %in% target_proteins) || 
+               (p2 %in% negative_controls && p1 %in% target_proteins)) {
+      if (c1 == 0 || c2 == 0) {
+        score <- 0
+      } else if (c1 == c2) {
+        score <- -1
+      } else {
+        score <- 1  # Properly separated
+      }
+
+    # Both are negative controls – don't score this pair
+    } else {
+      next
+    }
+
+    pair_scores <- c(pair_scores, score)
+  }
+
+  avg_score <- mean(pair_scores, na.rm = TRUE)
+
+  parts <- strcapture("eps_([0-9.]+)_minPts_([0-9]+)", col_name, data.frame(eps = 0, minPts = 0))
+  
+  score_results <- rbind(score_results, data.frame(
+    eps = as.numeric(parts$eps),
+    minPts = as.numeric(parts$minPts),
+    score = avg_score
+  ))
+}
+
+# --- Step 6: Plot heatmap ---
+ggplot(score_results, aes(x = eps, y = minPts, fill = score)) +
+  geom_tile(color = "grey70") +
+  scale_fill_gradient2(low = "red", mid = "white", high = "blue", midpoint = 0, limits = c(-1, 1)) +
+  labs(title = "Clustering Consistency of Protein Pairs",
+       subtitle = "Based on DBSCAN parameter combinations",
+       x = "Epsilon (ε)",
+       y = "MinPts",
+       fill = "Avg. Pair Score") +
+  theme_minimal()
+
+
+```
+
+
+
+
+
+
+
+# Additional Data for all Proteins using Uniprot and CORUM (carefull runs 35 min!!!... grab a coffee :)
+>>>>>>> aa78f343168ec0c285d1a0308d32e67bc485fabc
 ```{r}
 library(httr)
 library(jsonlite)
@@ -1894,232 +2107,6 @@ head(shapiro_results)
 
 # Übersicht wie viele normalverteilt
 table(shapiro_results$Is_Normal_Distributed)
-```
-
-
-# other clustering method 
-
-```{r}
-#from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis 
-
-library(dplyr)
-
-# 1) Filter only the RBPs relevant in Mitosis 
-
-filtered_shift_Mitosis <- Shift_Data[rownames(Shift_Data) %in% RBPs_Mitosis, ]
-
-filtered_peak_Mitosis <- Peak_Data[rownames(Peak_Data) %in% RBPs_Mitosis, ]
-
-# 2) Selecting only the interesting coloumns creating comon dataframe
-
-merged_filterd_mitosis <- cbind(
-  filtered_shift_Mitosis[, c("CoM_Ctrl")],
-  filtered_peak_Mitosis %>% select(ends_with("height_Ctrl"))
-)
-
-head(merged_filterd_mitosis)
-
-# 3) clean data for further steps 
-
-# Remove rows with NA values
-
-clean_merged_filterd_mitosis <- merged_filterd_mitosis
-clean_merged_filterd_mitosis[is.na(clean_merged_filterd_mitosis)] <- 0
-
-# Optionally remove constant columns
-
-clean2_merged_filterd_mitosis <- clean_merged_filterd_mitosis[, apply(clean_merged_filterd_mitosis, 2, function(col) sd(col, na.rm = TRUE) != 0)]
-
-
-# Load libraries => fals nicht installiert mussen die instaliert werden
-#install.packages("dbscan")
-#install.packages("factoextra")
-
-# Load libraries
-library(dbscan)
-library(ggplot2)
-library(factoextra)
-
-# Use your actual protein_data with proper rownames (protein names)
-# For example:
-# rownames(protein_data) <- protein_data$ProteinName
-
-# Scale data
-scaled_data <- scale(clean2_merged_filterd_mitosis)
-
-# DBSCAN # its important to choose eps and minPts correctly, eps is the max distance for two points to be neighbors, minPts  minimum number of points required to form a dense region ( here i choose x based on the dimension of the data and the averedge protein komplex )
-db <- dbscan(scaled_data, eps = 0.7, minPts = 4)
-
-# PCA for plotting
-pca <- prcomp(scaled_data)
-pca_df <- as.data.frame(pca$x[, 1:2])  # PC1 and PC2
-pca_df$cluster <- as.factor(db$cluster)
-pca_df$protein <- rownames(clean2_merged_filterd_mitosis)  # Add protein names
-
-# Plot with noise in grey
-ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster, label = ifelse(cluster == 0, "", protein))) +
-  geom_point(size = 2) +
-  geom_text(check_overlap = TRUE, size = 2.5, vjust = -1) +
-  scale_color_manual(values = c("0" = "grey", "1" = "blue", "2" = "red", "3" = "green", "4" = "purple", "5" = "orange")) +
-  theme_minimal() +
-  labs(title = "DBSCAN Clustering of Proteins",
-       subtitle = "Visualized with PCA (2D)",
-       color = "Cluster") +
-  theme(plot.title = element_text(face = "bold"))
-
-# Create table: which proteins are in which cluster
-clustered_proteins <- split(rownames(clean2_merged_filterd_mitosis), db$cluster)
-
-# Print each cluster's members
-for (cl in sort(unique(db$cluster))) {
-  cat(paste0("Cluster ", cl, ifelse(cl == 0, " (noise)", ""), ": "))
-  cat(paste(clustered_proteins[[as.character(cl)]], collapse = ", "))
-  cat("\n\n")
-}
-
-
-# code from ploting a protein to visualize the proteins that seam to make a complex
-# View Examples
-sample_RBPs_Cluster <- c("RL22_HUMAN", "RL23_HUMAN", "RL24_HUMAN", "RL27_HUMAN", "RL30_HUMAN", "RL34_HUMAN", "RLA1_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN", "RS12_HUMAN")
-
-for (r in sample_RBPs_Cluster){
-  plot_protein(r)
-}
-
-```
-
-
-# vergleich mit corum daten
-```{r}
-
-# Analysis of Clusters with CORUM data
-RBPs_Mitosis_CORUM_clustered3 <- RBPs_Mitosis_CORUM[RBPs_Mitosis_CORUM %in% c("CLAP1_HUMAN", "ELYS_HUMAN", "KIF14_HUMAN" , "NOP58_HUMAN", "PRPF3_HUMAN", "RBBP6_HUMAN", "RFC1_HUMAN", "ZC11A_HUMAN")]
-
-length(RBPs_Mitosis_CORUM_clustered3)
-
-View(RBPs_Mitosis_CORUM_clustered3)
-
-protein_data[protein_data$Entry %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "SAFB1_HUMAN", "ZCH18_HUMAN"),]
-
-
-```
-
-# finding the right parameters to choose the perfect cluster size 
-```{r}
-
-# -------------- PART 1: Creating a loop for all possible combinations for ε between the numbers ( 0.5-1.5) in steps of 0.1 and for MinPts (1-10) in steps of 1 ----------
-
-# 1. Scale the data
-scaled_data <- scale(clean_merged_filterd_mitosis)
-protein_names <- rownames(clean_merged_filterd_mitosis)
-n_proteins <- nrow(scaled_data)
-
-# 2. Create empty data frame to collect results
-results_df <- data.frame(row.names = protein_names)
-
-# 3. Loop over all combinations
-for (eps in seq(0.5, 1.5, by = 0.1)) {
-  for (minPts in 1:10) {
-    
-    # Run DBSCAN
-    db <- dbscan(scaled_data, eps = eps, minPts = minPts)
-    
-    # Store cluster assignments
-    col_name <- paste0("eps_", eps, "_minPts_", minPts)
-    results_df[[col_name]] <- db$cluster
-  }
-}
-
-# 4. Preview result
-head(results_df)
-
-# -------------- PART 2: Creating a loop for all possible combinations for ε between the numbers ( 0.5-1.5) in steps of 0.1 and for MinPts (1-10) in steps of 1 ----------
-
-library(ggplot2)
-library(reshape2)
-
-
-# --- Step 1: Define your proteins of interest ---
-target_proteins <- c("RS12_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN")
-negative_controls <- c("LPPRC_HUMAN", "UIMC1_HUMAN")  # Add more if needed
-
-all_proteins <- c(target_proteins, negative_controls)
-
-# --- Step 3: create all pairwise combinations ---
-protein_pairs <- combn(all_proteins, 2, simplify = FALSE)
-
-# --- Step 4: scoring for each DBSCAN setting ---
-score_results <- data.frame()
-
-for (col_name in colnames(results_df)) {
-  
-  cluster_assignments <- as.numeric(results_df[[col_name]])
-  names(cluster_assignments) <- rownames(results_df)
-  
-  pair_scores <- c()
-
-  for (pair in protein_pairs) {
-    p1 <- pair[1]
-    p2 <- pair[2]
-    c1 <- cluster_assignments[p1]
-    c2 <- cluster_assignments[p2]
-
-    # Skip if NA
-    if (is.na(c1) || is.na(c2)) {
-      score <- NA
-
-    # Both are targets
-    } else if (p1 %in% target_proteins && p2 %in% target_proteins) {
-      if (c1 == 0 || c2 == 0) {
-        score <- 0
-      } else if (c1 == c2) {
-        score <- 1
-      } else {
-        score <- -1
-      }
-
-    # One is negative control, one is target
-    } else if ((p1 %in% negative_controls && p2 %in% target_proteins) || 
-               (p2 %in% negative_controls && p1 %in% target_proteins)) {
-      if (c1 == 0 || c2 == 0) {
-        score <- 0
-      } else if (c1 == c2) {
-        score <- -1
-      } else {
-        score <- 1  # Properly separated
-      }
-
-    # Both are negative controls – don't score this pair
-    } else {
-      next
-    }
-
-    pair_scores <- c(pair_scores, score)
-  }
-
-  avg_score <- mean(pair_scores, na.rm = TRUE)
-
-  parts <- strcapture("eps_([0-9.]+)_minPts_([0-9]+)", col_name, data.frame(eps = 0, minPts = 0))
-  
-  score_results <- rbind(score_results, data.frame(
-    eps = as.numeric(parts$eps),
-    minPts = as.numeric(parts$minPts),
-    score = avg_score
-  ))
-}
-
-# --- Step 6: Plot heatmap ---
-ggplot(score_results, aes(x = eps, y = minPts, fill = score)) +
-  geom_tile(color = "grey70") +
-  scale_fill_gradient2(low = "red", mid = "white", high = "blue", midpoint = 0, limits = c(-1, 1)) +
-  labs(title = "Clustering Consistency of Protein Pairs",
-       subtitle = "Based on DBSCAN parameter combinations",
-       x = "Epsilon (ε)",
-       y = "MinPts",
-       fill = "Avg. Pair Score") +
-  theme_minimal()
-
-
 ```
 
 
