@@ -29,7 +29,8 @@ MS_Table <- read.table("RDeeP_HeLa_Mitosis.csv", header = TRUE, row.names = 1, s
 
 # Data Cleanup
 ## Despription of the Data - Lina
-GOAL: Get a feeling for the dataset and decide on necessary clean-up steps
+### Goal: 
+- Get a feeling for the dataset and decide on necessary clean-up steps
 ```{r}
 library(glue)
 
@@ -42,7 +43,7 @@ glue("Overall maximum intenstity: {max(MS_Table)}")
 ```
 
 #Normalisation
-GOAL: 
+### Goal: 
 - Generate a new dataframe with replicate-averaged intensity values,scaled so that each protein's total intensity sums to 100 across all fractions (fopr Ctrl and RNase)
 - Build a function to plot protein profiles using the normalized data  
 - Confirm experimental reproducibility by comparing intensity profiles across replicates
@@ -85,8 +86,10 @@ ordered_names <- as.vector(rbind(
 MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 ```
 
-## Normalization to 100 -Cihan
+## Normalization to 100 - Cihan
+### Goal: 
 - Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
+- Will help with easier visualtization of the plots
 ```{r}
 # Split up Control and RNAse values 
 ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages)) # grep function genauer schauen 
@@ -106,7 +109,8 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 ```
 
 ## Plotting a Protein - Lina
-GOAL: Build a function to plot normalized intensity values of Ctrl and RNase across all fractions
+### Goal: 
+- Build a function to plot normalized intensity values of Ctrl and RNase across all fractions
 ```{r}
 plot_protein <- function(x) {
   
@@ -151,7 +155,10 @@ plot_protein("RL27_HUMAN")
 
 
 ## Reproducibility Analysis : Cihan and Sofia 
-- Goal: Assess how consistent our results are and how much variability comes from our data. For this, correlation is calculated for all combinations of fractions across all Ctrl and RNase samples and all repetitions. Logically, the diagonal shows a correlation with p-value = 1. Additionally, we expect a correlation of 1 for the same Ctrl/RNase condition and the same fraction across different repetitions. For the rest of the combinations, we expect very low correlation values. We used Spearman correlation for less sensitivity to outlyers. ( ist nicht der punkt von reproduzability auf variability zu testen, bin hier etwas confused). 
+### Goal: 
+- Assess reproducibility of MS-based protein measurements for both treatments 
+- Visualize how consistent protein ranking patterns are across all replicates and fractions
+- We expect a diagonal showing our r-value = 1, while the other combinations should show lower correlation
 ```{r}
 # Create empty dataframe for correlation 
 full_correlation_results <- data.frame(
@@ -212,37 +219,63 @@ full_correlation_results <- full_correlation_results %>%
    mutate(Row = paste0(Replicate_1, "_F", gsub("Fraction_", "", Fraction_1)),
          Col = paste0(Replicate_2, "_F", gsub("Fraction_", "", Fraction_2)))
 
-# we select treament RNase for our heatmap
-treatment_to_plot <- "RNase"
+# we select treament RNase for our first heatmap
+treatment_to_plot_RNase <- "RNase"
 
-# filter table for selected treatment 
-heatmap_data <- full_correlation_results %>%
-  filter(Treatment == treatment_to_plot) %>%
+# filter table for selected treatment: RNase
+heatmap_data_RNase <- full_correlation_results %>%
+  filter(Treatment == treatment_to_plot_RNase) %>%
   select(Row, Col, Spearman_r)
 
 # convert into matrix 
-heatmap_matrix <- heatmap_data %>%
+heatmap_matrix_RNase <- heatmap_data_RNase %>%
   pivot_wider(names_from = Col, values_from = Spearman_r, values_fill = NA) %>%
   column_to_rownames("Row") %>%
   as.matrix()
 
-# create heatmap
-pheatmap(heatmap_matrix,
-         main = paste("Spearman Correlation Heatmap -", treatment_to_plot),
+# create heatmap for RNase treatment
+print(pheatmap(heatmap_matrix_RNase,
+         main = paste("Spearman Correlation Heatmap -", treatment_to_plot_RNase),
          cluster_rows = FALSE, 
          cluster_cols = FALSE, 
          show_rownames = TRUE, 
          show_colnames = TRUE,
          fontsize_row = 4,
-         fontsize_col = 4)
+         fontsize_col = 4))
+
+# we select treament Ctrl for our second heatmap
+treatment_to_plot_Ctrl <- "Ctrl"
+
+# filter table for selected treatment: Ctrl
+heatmap_data_Ctrl <- full_correlation_results %>%
+  filter(Treatment == treatment_to_plot_Ctrl) %>%
+  select(Row, Col, Spearman_r)
+
+# convert into matrix 
+heatmap_matrix_Ctrl <- heatmap_data_Ctrl %>%
+  pivot_wider(names_from = Col, values_from = Spearman_r, values_fill = NA) %>%
+  column_to_rownames("Row") %>%
+  as.matrix()
+
+# create heatmap for Ctrl treatment
+print(pheatmap(heatmap_matrix_Ctrl,
+         main = paste("Spearman Correlation Heatmap -", treatment_to_plot_Ctrl),
+         cluster_rows = FALSE, 
+         cluster_cols = FALSE, 
+         show_rownames = TRUE, 
+         show_colnames = TRUE,
+         fontsize_row = 4,
+         fontsize_col = 4))
 
 ```
 
 # Data Analysis
-GOAL:
+### Goal:
+- Finding RBPs in our dataset 
+- Filtering them for only active in mitosis
 
 ## Peak Detection in Normalized Ctrl/RNase Profiles  - Lina
-GOAL:
+### Goal:
 - Identify peaks in normalized intensity profiles (Ctrl and RNase)
 - Extract number of peaks, their positions and heights
 - Store the results in a structured data frame for description of proteins
@@ -402,7 +435,9 @@ Shift_Data <- data.frame(
 
 ##T-Test
 ### First Normalization of whole MS_Table to 100 - Cihan
-- We decided to run the statistical test on normalised values, so all replicates need to be normalised to 100
+#### Goal: 
+- To normalize the values of each replicate within each treatment (Ctrl and RNase) so that the total across all 25 fractions equals 100 per replicate.
+- This ensures comparability between replicates by removing global intensity differences, and prepares the data for center of mass (CoM) calculation and statistical testing (t-test) later on.
 ```{r}
 # Split up all Ctrl and RNAse values and their individual Reps 
 ctrl_cols_t1 <- grep("_Ctrl_Rep1", colnames(MS_Table))
@@ -447,7 +482,8 @@ rowSums(Norm_Data_for_t["1433B_HUMAN", ])
 ```
 
 ### Caluclation of Center of mass (CoM) : Sofia 
-- Goal:All dimensions of our data, such as multiple peak positions and heights, are simplified for later t-tests (only one value) by using Center of Mass (CoM) values. The CoM is calculated for all replicates and treatments and data comes from Norm_Data_for_t (normalised Data) and stored in a data frame. It represents the weighted average position of a signal: the sum of all fraction numbers multiplied by their intensity values, divided by the total intensity. This way, if a peak is "split" into two in one experiment but not in another, it should not affect the result significantly, as both would have similar CoM values. 
+### Goal:
+- All dimensions of our data, such as multiple peak positions and heights, are simplified for later t-tests (only one value) by using Center of Mass (CoM) values. The CoM is calculated for all replicates and treatments and data comes from Norm_Data_for_t (normalised Data) and stored in a data frame. It represents the weighted average position of a signal: the sum of all fraction numbers multiplied by their intensity values, divided by the total intensity. This way, if a peak is "split" into two in one experiment but not in another, it should not affect the result significantly, as both would have similar CoM values. 
 ```{r}
 # aufstellen von variablen  
 
@@ -496,7 +532,10 @@ rownames(CoM_Data_for_t) <- rownames(Norm_Data_for_t)
 head(CoM_Data_for_t)
 ```
 
-### Calculating Shift-Distance for T-Test - Lina
+
+### Calculating Shift-Values for T-Test - Lina
+#### Goal: 
+- Calculate deviation between CoM of Ctrl and CoM of RNase and store in df for t-test 
 ```{r}
 # For each protein, subtract the RNase CoM from the corresponding Ctrl CoM across all three replicates to obtain replicate-wise shift distances.
 # Columns 1–3 = Ctrl_Rep1–3, Columns 4–6 = RNase_Rep1–3 (in CoM_Data_for_t)
@@ -511,7 +550,13 @@ Shift_Data_for_t <- data.frame(
 sum(is.na(Shift_Data_for_t))
 ```
 
-### T-Test -Cihan
+### T-Test - Cihan
+#### Goal: 
+- To statistically test whether proteins show a significant left-shift in their center of mass (CoM) distribution in RNase vs. Ctrl, indicating RNA-dependent localization.
+- This is done by:
+1. Applying the Shapiro-Wilk test first to ensure the shift values are normally distributed before running the t-test.
+2. Testing if the shift distance is significantly greater than 1 using a one-sided t-test.
+- Significant hits are categorized as RBPs.
 ```{r}
 # create empty columns for statistical test results 
 Shift_Data$shapiro_p <- NA
@@ -700,7 +745,7 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
   theme_minimal()
 ```
 
-### Evaluation of T-Test Limitations -Lina
+### Evaluation of T-Test Limitations - Lina
 
 This section investigates potential false negatives from the T-test-based RBP identification.  
 We explore cases where known RBPs were not classified as significant and examine possible causes:
@@ -761,7 +806,8 @@ for (s in t_test_positives_critical_p_value){
 }
 ```
 
-## T-Test for non-synchronised HELA Cells - Lina
+
+## T-Test for non-synchronised HELA Cells - includes previous coded parts of all group members, slightly adjusted by Lina
 This section reproduces all necessary pipeline steps with adjusted variable names.  
 All variables related to the non-synchronized dataset are suffixed with `_NS`.
 ```{r}
@@ -1050,7 +1096,11 @@ ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`,
   theme_minimal()
 ```
 
-#Clustering to find posible RBP complexes in our RBPs in Mitosis: Sofia and Cihan (1-5)
+
+
+
+
+#Clustering to find posible RBP complexes in our RBPs in Mitosis - Sofia and Cihan 
 
 #1) Selection of clustering criteria and Hirarchical clustering to look at distribution of values posibel number of clusters
 
@@ -1589,6 +1639,24 @@ ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_
   labs(x = "Peak Position", y = "Molecular Weight (kDa)", color = "Protein Category", 
     title = "Molecular Weight vs. Peak Position ")
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # TRY AND ERROR (BackUP)
 
