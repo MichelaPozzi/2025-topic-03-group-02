@@ -136,13 +136,52 @@ plot_protein <- function(x) {
   axis(2, cex.axis = 0.7, las =2)
   grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted", lwd = 0.8)
 
-  legend("topright", legend=c("Ctrl", "RNase"), col=c("forestgreen", "firebrick3"), 
+  legend("right", legend=c("Ctrl", "RNase"), col=c("forestgreen", "firebrick3"), 
          lty=1, lwd = 1.5,  pch=20, bg = "white", bty = "o", box.col = NA)
 }
 
 plot_protein("ANM7_HUMAN") #fill in protein that you wanna see
 ```
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
 
+plot_protein_gg <- function(x) {
+  protein_of_interest <- x
+  protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
+  ctrl_values <- as.numeric(protein_row[seq(1, 49, by = 2)])
+  rnase_values <- as.numeric(protein_row[seq(2, 50, by = 2)])
+  fractions <- 1:25
+
+  df <- data.frame(
+    Fraction = rep(fractions, 2),
+    Intensity = c(ctrl_values, rnase_values),
+    Condition = rep(c("Ctrl", "RNase"), each = 25)
+  )
+
+  ggplot(df, aes(x = Fraction, y = Intensity, color = Condition, fill = Condition)) +
+    geom_line(size = 1) +
+    geom_point(shape = 20, size = 4) +
+    geom_ribbon(aes(ymin = 0, ymax = Intensity), alpha = 0.1, color = NA) +
+    scale_color_manual(values = c("Ctrl" = "forestgreen", "RNase" = "firebrick3")) +
+    scale_fill_manual(values = c("Ctrl" = "forestgreen", "RNase" = "firebrick3")) +
+    scale_x_continuous(breaks = 1:25) +
+    labs(
+      title = protein_of_interest,
+      x = "Fraction",
+      y = "Normalized Intensity"
+    ) +
+    theme_classic() +
+    theme(
+      plot.title = element_text(hjust = 0.5),
+      panel.grid.major.y = element_line(color = "lightgray", linetype = "dotted")
+    ) +
+    geom_vline(xintercept = c(5, 10, 15, 20, 25),
+               linetype = "dotted", color = "lightgray") 
+}
+plot_protein_gg("ANM7_HUMAN")
+```
 ## Reproducibility Analysis : Cihan and Sofia 
 - Goal: Assess how consistent our results are and how much variability comes from our data. For this, correlation is calculated for all combinations of fractions across all Ctrl and RNase samples and all repetitions. Logically, the diagonal shows a correlation with p-value = 1. Additionally, we expect a correlation of 1 for the same Ctrl/RNase condition and the same fraction across different repetitions. For the rest of the combinations, we expect very low correlation values. We used Spearman correlation for less sensitivity to outlyers. ( ist nicht der punkt von reproduzability auf variability zu testen, bin hier etwas confused). 
 ```{r}
@@ -1966,7 +2005,7 @@ for (cl in sort(unique(db$cluster))) {
 
 # code from ploting a protein to visualize the proteins that seam to make a complex
 # View Examples
-sample_RBPs_Cluster <- c("CBX8_HUMAN", "DHX8_HUMAN", "FMR1_HUMAN", "KIFC1_HUMAN", "RBM6_HUMAN", "RL27_HUMAN", "RS26L_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN", "TRI25_HUMAN", "UBF1_HUMAN", "ZCCHV_HUMAN")
+sample_RBPs_Cluster <- c("RL22_HUMAN", "RL23_HUMAN", "RL24_HUMAN", "RL27_HUMAN", "RL30_HUMAN", "RL34_HUMAN", "RLA1_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN", "RS12_HUMAN")
 
 for (r in sample_RBPs_Cluster){
   plot_protein(r)
