@@ -683,57 +683,6 @@ glue("Hit rate: {round(length(overlap_t_test)/length(overlap_MS_Table)*100, 2)}%
   print(neg_df)
 ```
 
-###Plot Validation of T-test with UniProt Data - Lina
-This plot extends the CoM-based T-test visualization by highlighting known RBPs from UniProt.
-This view helps assess the sensitivity and limitations of the shift-based identification method relative to external RBP annotations.
-```{r}
-library(ggplot2)
-library(dplyr)
-
-# Create data subset of proteins for highlighting (was nessesary for coloring sequence)
-highlight_data <- subset(Shift_Data,
-                         rownames(Shift_Data) %in% overlap_t_test |
-                         rownames(Shift_Data) %in% not_indentified |
-                         significant_ttest_filtered)
-
-# Classify each protein into a color group
-highlight_data$color_group <- case_when(
-  rownames(highlight_data) %in% overlap_t_test ~ "Overlaping with UniProt",
-  rownames(highlight_data) %in% not_indentified ~ "UniProt Proteins not identified",
-  highlight_data$significant_ttest_filtered ~ "Significant Left Shift / RBPs"
-)
-
-# Control transparency depending on group
-highlight_data$alpha_group <- case_when(
-  highlight_data$color_group == "Overlaping with UniProt" ~ "high",
-  highlight_data$color_group == "UniProt Proteins not identified" ~ "high",
-  highlight_data$color_group == "Significant Left Shift / RBPs" ~ "low"
-)
-
-# Base plot: all proteins shown in background
-ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
-  
-    # Background: all non-highlighted proteins in light gray
-    geom_point(aes(color = "No significant Shift"), alpha = 0.3, show.legend = FALSE) +
-  
-    # Highlighted groups: UniProt hits, misses, and T-test positives
-    geom_point(data = highlight_data,
-             aes(color = color_group, alpha = alpha_group)) +
-    scale_color_manual(name = "Significance as RBP",values = c(
-    "No significant Shift" = "gray80",
-    "Significant Left Shift / RBPs" = "gray40",
-    "Overlaping with UniProt" = "lightcoral",
-    "UniProt Proteins not identified" = "darkred"
-    ))+
-    scale_alpha_manual(values = c("high" = 0.9, "low" = 0.3), guide = "none") +
-  
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray20") +
-  labs(title = "Validation of T-Test: Comparing with UniProt Data",
-       x = "CoM Ctrl",
-       y = "CoM RNase") +
-  theme_minimal()
-```
-
 ### Evaluation of T-Test Limitations - Lina, Cihan, Sofia
 
 This section investigates potential false negatives from the T-test-based RBP identification.  
@@ -795,6 +744,56 @@ for (s in t_test_positives_critical_p_value){
 }
 ```
 
+###Plot Validation of T-test with UniProt Data - Lina
+This plot extends the CoM-based T-test visualization by highlighting known RBPs from UniProt.
+This view helps assess the sensitivity and limitations of the shift-based identification method relative to external RBP annotations.
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Create data subset of proteins for highlighting (was nessesary for coloring sequence)
+highlight_data <- subset(Shift_Data,
+                         rownames(Shift_Data) %in% overlap_t_test |
+                         rownames(Shift_Data) %in% not_indentified |
+                         significant_ttest_filtered)
+
+# Classify each protein into a color group
+highlight_data$color_group <- case_when(
+  rownames(highlight_data) %in% overlap_t_test ~ "Overlaping with UniProt",
+  rownames(highlight_data) %in% not_indentified ~ "UniProt Proteins not identified",
+  highlight_data$significant_ttest_filtered ~ "Significant Left Shift / RBPs"
+)
+
+# Control transparency depending on group
+highlight_data$alpha_group <- case_when(
+  highlight_data$color_group == "Overlaping with UniProt" ~ "high",
+  highlight_data$color_group == "UniProt Proteins not identified" ~ "high",
+  highlight_data$color_group == "Significant Left Shift / RBPs" ~ "low"
+)
+
+# Base plot: all proteins shown in background
+ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
+  
+    # Background: all non-highlighted proteins in light gray
+    geom_point(aes(color = "No significant Shift"), alpha = 0.3, show.legend = FALSE) +
+  
+    # Highlighted groups: UniProt hits, misses, and T-test positives
+    geom_point(data = highlight_data,
+             aes(color = color_group, alpha = alpha_group)) +
+    scale_color_manual(name = "Significance as RBP",values = c(
+    "No significant Shift" = "gray80",
+    "Significant Left Shift / RBPs" = "gray40",
+    "Overlaping with UniProt" = "lightcoral",
+    "UniProt Proteins not identified" = "darkred"
+    ))+
+    scale_alpha_manual(values = c("high" = 0.9, "low" = 0.3), guide = "none") +
+  
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray20") +
+  labs(title = "Validation of T-Test: Comparing with UniProt Data",
+       x = "CoM Ctrl",
+       y = "CoM RNase") +
+  theme_minimal()
+```
 
 ## T-Test for non-synchronised HELA Cells - includes previous coded parts of all group members, slightly adjusted - Lina
 This section reproduces all necessary pipeline steps with adjusted variable names.  
