@@ -2362,3 +2362,112 @@ CoM_Data_for_t <- as.data.frame(results_com)
 rownames(CoM_Data_for_t) <- rownames(Norm_Data_for_t)
 head(CoM_Data_for_t)
 ```
+
+
+```{r}
+sample_RBPs_60s <- c("RL22_HUMAN", "RL23_HUMAN", "RL24_HUMAN", "RL27_HUMAN", "RL30_HUMAN", "RL34_HUMAN","RLA1_HUMAN" ) 
+
+for (r in sample_RBPs_60s){
+  plot_protein(r)
+}
+#bis auf RL22, peak bei 21 relevant
+```
+
+```{r}
+sample_RBPs_40s <- c( "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN", "RS12_HUMAN") # insert names of clustered proteins you want to compare 
+
+for (r in sample_RBPs_40s ){
+  plot_protein(r)
+}
+#Peak bei 18 relevant
+```
+
+```{r}
+sample_RBPs_Cluster4 <- c("RL23_HUMAN","RL27_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN") # insert names of clustered proteins you want to compare 
+
+for (r in sample_RBPs_Cluster4 ){
+  plot_protein(r)
+}
+#Nur Proteine mit beiden peaks, 18 und 21 (würde optisch noch RL24 einordnen, aber egal) <- Clustering sucht sehr spezifisch und funktioniert
+```
+
+```{r}
+#Alle proteine in Nop56p
+
+proteins_Nop56p <- protein_data$Entry[
+  grepl("Nop56p-associated pre-rRNA complex", protein_data$CORUM_complex_names, fixed = TRUE)
+]
+length(proteins_Nop56p)
+
+proteins_Nop56p_RBPs <- intersect(proteins_Nop56p, t_test_positives)
+length(proteins_Nop56p_RBPs)
+
+proteins_Nop56p_RBPs_Mitosis <- intersect(proteins_Nop56p, RBPs_Mitosis)
+length(proteins_Nop56p_RBPs_Mitosis)
+
+for (r in proteins_Nop56p ){
+  plot_protein(r)
+}
+```
+
+```{r}
+#Alle proteine in 60s UE
+
+proteins_60s <- protein_data$Entry[
+  grepl("60S ribosomal subunit", protein_data$CORUM_complex_names, fixed = TRUE)
+]
+length(proteins_60s)
+
+proteins_60s_RBPs <- intersect(proteins_60s, t_test_positives)
+length(proteins_60s_RBPs)
+
+proteins_60s_RBPs_Mitosis <- intersect(proteins_60s, RBPs_Mitosis)
+length(proteins_60s_RBPs_Mitosis)
+
+for (r in proteins_60s){
+  plot_protein(r)
+}
+```
+
+```{r}
+#Alle proteine in 40s UE
+
+proteins_40s <- protein_data$Entry[
+  grepl("40S ribosomal subunit", protein_data$CORUM_complex_names, fixed = TRUE)
+]
+length(proteins_40s)
+
+proteins_40s_RBPs <- intersect(proteins_40s, t_test_positives)
+length(proteins_40s_RBPs)
+
+proteins_40s_RBPs_Mitosis <- intersect(proteins_40s, RBPs_Mitosis)
+length(proteins_40s_RBPs_Mitosis)
+
+for (r in proteins_40s){
+  plot_protein(r)
+}
+```
+
+```{r}
+proteins_60s_40s <- intersect(proteins_60s, proteins_40s)
+length(proteins_60s_40s)
+
+proteins_60S_Nop56p <- intersect(proteins_60s, proteins_Nop56p)
+length(proteins_60S_Nop56p)
+
+proteins_40S_Nop56p <- intersect(proteins_40s, proteins_Nop56p)
+length(proteins_40S_Nop56p)
+
+
+```
+```{r}
+for (r in proteins_60S_Nop56p){
+  plot_protein(r)
+}
+```
+```{r}
+for (r in proteins_40S_Nop56p){
+  plot_protein(r)
+}
+```
+```
