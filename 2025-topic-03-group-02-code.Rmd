@@ -278,7 +278,6 @@ print(pheatmap(heatmap_matrix_Ctrl,
 ### Goal:
 - Identify peaks in normalized intensity profiles (Ctrl and RNase)
 - Extract number of peaks, their positions and heights
-- Store the results in a structured data frame for description of proteins
 ! NOTE: Peak data is not used for RBP identification.  
 This step is purely descriptive. However, Peak_Data is later used for clustering and linear regression analysis.
 
