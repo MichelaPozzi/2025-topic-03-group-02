@@ -2389,6 +2389,8 @@ for (r in sample_RBPs_Cluster4 ){
   plot_protein(r)
 }
 #Nur Proteine mit beiden peaks, 18 und 21 (würde optisch noch RL24 einordnen, aber egal) <- Clustering sucht sehr spezifisch und funktioniert
+# wir haben Proteine des 40s ud 60s komlexes gefunden, die scheinbar nur in der Mitose RNA bindend sind
+# wir haben in unserem Cluster von denen genau die Proteine gefunden, die im Nop56p komplex nicht nur mit ihrem 40s (/60s) Complex interagieren, sondern auch über Nop56p mit dem 60s complex (/40s complex)
 ```
 
 ```{r}
@@ -2470,4 +2472,8 @@ for (r in proteins_40S_Nop56p){
   plot_protein(r)
 }
 ```
+```{r}
+for (r in proteins_40s){
+  plot_protein_NS(r)
+}
 ```
