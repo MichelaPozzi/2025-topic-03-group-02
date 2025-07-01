@@ -86,6 +86,61 @@ ordered_names <- as.vector(rbind(
 MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 ```
 
+
+## Plot showing variance of our data 
+```{r}
+
+# -------------- PART 1: Plot for standart deviation for all 7159 proteins from MS_Table_Averages for each fraction for the CTRL condition ----------
+
+
+
+library(ggplot2)
+
+# 1. Select Ctrl columns using grep
+ctrl_cols <- grep("^Ctrl_Fraction_", colnames(MS_Table_Averages), value = TRUE)
+
+# 2. Randomly pick 25 proteins (rows)
+set.seed(123)
+selected <- sample(rownames(MS_Table_Averages), 25)
+data <- MS_Table_Averages[selected, ctrl_cols]
+
+# 3. Calculate mean and SE per protein (row-wise)
+mean_vals <- apply(data, 1, mean, na.rm = TRUE)
+se_vals <- apply(data, 1, function(x) sd(x, na.rm = TRUE) / sqrt(length(na.omit(x))))
+
+# 4. Identify outliers for each protein
+outliers <- lapply(1:nrow(data), function(i) {
+  vals <- as.numeric(data[i, ])
+  q1 <- quantile(vals, 0.25, na.rm = TRUE)
+  q3 <- quantile(vals, 0.75, na.rm = TRUE)
+  iqr <- q3 - q1
+  out_idx <- which(vals < (q1 - 1.5 * iqr) | vals > (q3 + 1.5 * iqr))
+  if (length(out_idx) > 0) {
+    data.frame(Protein = rownames(data)[i],
+               Intensity = vals[out_idx])
+  }
+})
+outlier_df <- do.call(rbind, outliers)
+
+# 5. Create summary dataframe
+summary_df <- data.frame(
+  Protein = rownames(data),
+  Mean = mean_vals,
+  SE = se_vals
+)
+
+# 6. Plot (no log scale)
+ggplot(summary_df, aes(x = Protein, y = Mean)) +
+  geom_bar(stat = "identity", fill = "gray70") +
+  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE), width = 0.3) +
+  geom_point(data = outlier_df, aes(x = Protein, y = Intensity),
+             color = "darkred", size = 2, position = position_jitter(width = 0.2)) +
+  labs(title = "Mean Intensity per Protein",
+       y = "Mean Intensity", x = "") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
 ## Normalization to 100
 ### Goal: 
 - Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
