@@ -42,13 +42,13 @@ glue("Overall minimum intenstity: {min(MS_Table)}")
 glue("Overall maximum intenstity: {max(MS_Table)}")
 ```
 
-#Normalisation
+#Normalisation - Cihan, Sofia,Lina
 ### Goal: 
 - Generate a new dataframe with replicate-averaged intensity values,scaled so that each protein's total intensity sums to 100 across all fractions (fopr Ctrl and RNase)
 - Build a function to plot protein profiles using the normalized data  
 - Confirm experimental reproducibility by comparing intensity profiles across replicates
 
-## Normalization of triplicates - Lina
+## Normalization of triplicates
 ```{r}
 # Create a metadata dataframe with factor columns that map each MS_Table column to its experimental treatment, replicate, and fraction number
 treatment <- factor(rep(c("Ctrl", "RNase"), each = 3, length.out = 150))
@@ -86,7 +86,7 @@ ordered_names <- as.vector(rbind(
 MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 ```
 
-## Normalization to 100 - Cihan
+## Normalization to 100
 ### Goal: 
 - Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
 - Will help with easier visualtization of the plots
@@ -154,7 +154,7 @@ plot_protein("RL27_HUMAN")
 ```
 
 
-## Reproducibility Analysis : Cihan and Sofia 
+## Reproducibility Analysis - Cihan, Sofia 
 ### Goal: 
 - Assess reproducibility of MS-based protein measurements for both treatments 
 - Visualize how consistent protein ranking patterns are across all replicates and fractions
@@ -384,7 +384,7 @@ Peak_Data <- Peak_Data[, order]
 ```
 
 
-# Shift Characteristics - Lina
+# Shift Characteristics - Lina, Sofia, Chian
 To quantify positional shifts in protein profiles between Ctrl and RNase conditions, we calculate the Center of Mass (CoM) for each protein.
 The CoM is a weighted average of all fraction positions, where weights are the normalized intensity values.
 
@@ -626,7 +626,7 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
   theme_minimal()
 ```
 
-## Validation of T-Test with UniProt Data -Lina
+## Validation of T-Test with UniProt Data - Lina
 To assess the validity of our T-test-based identification of RNA-binding proteins (RBPs), we compare the results with annotated human RBPs from UniProt.
 
 This includes:
@@ -683,7 +683,7 @@ glue("Hit rate: {round(length(overlap_t_test)/length(overlap_MS_Table)*100, 2)}%
   print(neg_df)
 ```
 
-###Plot Validation of T-test with UniProt Data -Lina
+###Plot Validation of T-test with UniProt Data - Lina
 This plot extends the CoM-based T-test visualization by highlighting known RBPs from UniProt.
 This view helps assess the sensitivity and limitations of the shift-based identification method relative to external RBP annotations.
 ```{r}
@@ -734,7 +734,7 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
   theme_minimal()
 ```
 
-### Evaluation of T-Test Limitations - Lina
+### Evaluation of T-Test Limitations - Lina, Cihan, Sofia
 
 This section investigates potential false negatives from the T-test-based RBP identification.  
 We explore cases where known RBPs were not classified as significant and examine possible causes:
@@ -796,7 +796,7 @@ for (s in t_test_positives_critical_p_value){
 ```
 
 
-## T-Test for non-synchronised HELA Cells - includes previous coded parts of all group members, slightly adjusted by Lina
+## T-Test for non-synchronised HELA Cells - includes previous coded parts of all group members, slightly adjusted - Lina
 This section reproduces all necessary pipeline steps with adjusted variable names.  
 All variables related to the non-synchronized dataset are suffixed with `_NS`.
 ```{r}
