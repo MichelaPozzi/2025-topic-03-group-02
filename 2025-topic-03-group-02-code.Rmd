@@ -481,54 +481,44 @@ head(Norm_Data_for_t)
 rowSums(Norm_Data_for_t["1433B_HUMAN", ]) 
 ```
 
-### Caluclation of Center of mass (CoM) : Sofia 
+### Caluclation of Center of mass (CoM) - Sofia 
 ### Goal:
-- All dimensions of our data, such as multiple peak positions and heights, are simplified for later t-tests (only one value) by using Center of Mass (CoM) values. The CoM is calculated for all replicates and treatments and data comes from Norm_Data_for_t (normalised Data) and stored in a data frame. It represents the weighted average position of a signal: the sum of all fraction numbers multiplied by their intensity values, divided by the total intensity. This way, if a peak is "split" into two in one experiment but not in another, it should not affect the result significantly, as both would have similar CoM values. 
-```{r}
-# aufstellen von variablen  
+- All dimensions of our data, such as multiple peak positions and heights, are simplified for later t-tests (only one value) by using Center of Mass (CoM) values. The CoM is calculated for all replicates and treatments and data comes from Norm_Data_for_t (normalised Data). 
 
+-It represents the weighted average position of a signal: the sum of all fraction numbers multiplied by their intensity values, divided by the total intensity. (This way, if a peak is "split" into two in one experiment but not in another, it should not affect the result significantly, as both would have similar CoM values. ) => was in klammern bin ich mir nicht sicher 
+```{r}
+# Setup
 fractions <- 1:25
 conditions <- c("Ctrl", "RNase")
 replicates <- c("Rep1", "Rep2", "Rep3")
 
-#liste erstellen 
-
 results_com <- list()
 
-#looping through conditions and replicates as we want them all seperate
-
+# Loop through conditions and replicates ( runs 6 times for all combinations)
 for (cond in conditions) {
   for (rep in replicates) {
     
-#selecting colums with grep diesen strich verssteh ich nicht "chat sagt "makes one combined pattern with ORs (|) between them, so grep matches any of them."
+    # Single regex pattern to match all 25 fraction columns for this condition & replicate
+    pattern <- paste0("^Fraction[0-9]+_", cond, "_", rep, "$") # defines a pattern 
+    cols <- grep(pattern, colnames(Norm_Data_for_t), value = TRUE) # chooses pattern from coloums (matching)
 
-    pattern <- paste0("^Fraction", fractions, "_", cond, "_", rep, "$")
-    cols <- grep(paste(pattern, collapse="|"), colnames(Norm_Data_for_t), value = TRUE)  
+    # Subset and sort by fraction number
+    subdata <- Norm_Data_for_t[, cols] # chooses all columns 
+    subdata <- subdata[, order(as.numeric(gsub("Fraction(\\d+)_.*", "\\1", cols)))] # putting into the right order as Com assumes coloum 1 = fraction 1 
 
-    subdata <- Norm_Data_for_t[, cols]   
-#storing coloums 
+    # Center of mass calculation
+    com <- apply(subdata, 1, function(x) sum(x * fractions) / sum(x)) # function (across rows)
 
-    subdata <- subdata[, order(as.numeric(gsub("Fraction(\\d+)_.*", "\\1", cols)))]  #extracts the fraction number from column names.
-
-#center of mass calculation as discribed above
-
-    com <- apply(subdata, 1, function(x) {
-      sum(x * fractions) / sum(x)
-    })
-#store result in list 
-
-    results_com[[paste(cond, rep, sep = "_")]] <- com
+    # Store result
+    results_com[[paste(cond, rep, sep = "_")]] <- com # adds result from com to each cond/ rep, separates with _ 
   }
 }
 
-#convert list to dataframe
+# Convert list to data frame
+CoM_Data_for_t <- as.data.frame(results_com) 
 
-CoM_Data_for_t <- as.data.frame(results_com)   # convert list into data frame
+rownames(CoM_Data_for_t) <- rownames(Norm_Data_for_t) # apply rownames from df to new df 
 
-# Add correct rownames:
-rownames(CoM_Data_for_t) <- rownames(Norm_Data_for_t)
-
-# View the first few rows to check
 head(CoM_Data_for_t)
 ```
 
@@ -1230,7 +1220,7 @@ for (cl in sort(unique(db$cluster))) {
 ```
 
 
-# 3)looking at plots of different clusters (Linas code) 
+# 3)looking at plots of different clusters (aus Linas code) 
 
 Goal: Looking if the plots look similar or not in order to validate the parameters choosen above. This code can be always run to get a better feeling over clusters 
 ```{r}
@@ -1245,23 +1235,7 @@ for (r in sample_RBPs_Cluster){
 ```
 
 
-# 4)vergleich mit corum daten Ich glaub das müssen wir anders schreiben hier muss die selction von den 91 RBS welche in cluster vorkommen und das man sich dieses exel runterladen kann um sie sich anzuschauen 
-Goal: Finding Proteins that we know work in komplex for further positv/ negativ controlls of our clustering 
-```{r}
-
-# Analysis of Clusters with CORUM data
-RBPs_Mitosis_CORUM_clustered3 <- RBPs_Mitosis_CORUM[RBPs_Mitosis_CORUM %in% c("CLAP1_HUMAN", "ELYS_HUMAN", "KIF14_HUMAN" , "NOP58_HUMAN", "PRPF3_HUMAN", "RBBP6_HUMAN", "RFC1_HUMAN", "ZC11A_HUMAN")]
-
-length(RBPs_Mitosis_CORUM_clustered3)
-
-View(RBPs_Mitosis_CORUM_clustered3)
-
-protein_data[protein_data$Entry %in% c("DDX20_HUMAN", "DSRAD_HUMAN", "SAFB1_HUMAN", "ZCH18_HUMAN"),]
-
-
-```
-
-# 5) finding the right parameters to choose the perfect cluster size 
+# 4) finding the right parameters to choose the perfect cluster size 
 Goal: getting a good idea of how the picking of the parameters affects our clustering results by trying all combinations and creating a heat map based on the performance on a cluster (selected from exel from previous chunk). For the heatmap we made up following logic. 
 
 a) Based on all combinations from one cluster (positive control):
@@ -2353,3 +2327,38 @@ ggplot(score_results, aes(x = eps, y = minPts, fill = score)) +
 
 ```
  
+ 
+ 
+```{r}
+# Setup
+fractions <- 1:25
+conditions <- c("Ctrl", "RNase")
+replicates <- c("Rep1", "Rep2", "Rep3")
+
+results_com <- list()
+
+# Loop through conditions and replicates
+for (cond in conditions) {
+  for (rep in replicates) {
+    
+    # Single regex pattern to match all 25 fraction columns for this condition & replicate
+    pattern <- paste0("^Fraction[0-9]+_", cond, "_", rep, "$")
+    cols <- grep(pattern, colnames(Norm_Data_for_t), value = TRUE)
+
+    # Subset and sort by fraction number
+    subdata <- Norm_Data_for_t[, cols]
+    subdata <- subdata[, order(as.numeric(gsub("Fraction(\\d+)_.*", "\\1", cols)))]
+
+    # Center of mass calculation
+    com <- apply(subdata, 1, function(x) sum(x * fractions) / sum(x))
+
+    # Store result
+    results_com[[paste(cond, rep, sep = "_")]] <- com
+  }
+}
+
+# Convert list to data frame
+CoM_Data_for_t <- as.data.frame(results_com)
+rownames(CoM_Data_for_t) <- rownames(Norm_Data_for_t)
+head(CoM_Data_for_t)
+```
