@@ -171,14 +171,14 @@ full_correlation_results <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# iterate over both Ctrl and RNase Treatment 
+# Iterate over both Ctrl and RNase Treatment 
 for (treatment in c("Ctrl", "RNase")) {
   
   # Create all possible rep-fraction combinations
   combo1 <- expand.grid(Rep = 1:3, Fraction = 1:25)
   combo2 <- expand.grid(Rep = 1:3, Fraction = 1:25)
   
-  # iterate for every possible combination
+  # Iterate for every possible combination
   for (i in 1:nrow(combo1)) {
     for (j in 1:nrow(combo2)) {
       
@@ -191,10 +191,10 @@ for (treatment in c("Ctrl", "RNase")) {
       col1 <- which(replicate == paste0(treatment, "_Rep", rep1) & fraction == paste0("Fraction_", frac1))
       col2 <- which(replicate == paste0(treatment, "_Rep", rep2) & fraction == paste0("Fraction_", frac2))
       
-      # calculate Spearmen correlation
+      # Calculate Spearmen correlation
       cor_value <- cor(MS_Table[, col1], MS_Table[, col2], method = "spearman", use = "complete.obs")
       
-      # safe results in dataframe
+      # Safe results in dataframe
       full_correlation_results <- rbind(full_correlation_results, data.frame(
         Treatment = treatment,
         Replicate_1 = paste0("Rep", rep1),
