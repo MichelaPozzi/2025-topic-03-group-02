@@ -1147,7 +1147,9 @@ ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`,
 
 #1) Selection of clustering criteria and Hirarchical clustering to look at distribution of values posibel number of clusters
 
-Goal: select necessary parameters/ dimensions, get an idea of the distribution of clusters. Peak data is mainly taken into consideration, specifically peak hight ( not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant, overall. overall similar hight is more important than similar peak fraction. Runs only on RBPS only active in mitosis ( when compared to synchronized cells). Wards method ( euclidean distance applied), !i think here we have to say it didnt work. 
+Goal: select necessary parameters/ dimensions, get an idea of the distribution of clusters. 
+
+-Peak_data is mainly taken into consideration, specifically peak hight ( not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant. Overall similar hight is more important than similar peak fraction. Runs only on RBPS only active in mitosis ( when compared to synchronized cells). Wards method ( euclidean distance applied), !i think here we have to say it didnt work. 
 
 ```{r}
 #from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis !! hier stimmt was nicht.
@@ -1163,8 +1165,8 @@ filtered_peak_Mitosis <- Peak_Data[rownames(Peak_Data) %in% RBPs_Mitosis, ]
 # 2) Selecting only the interesting coloumns creating comon dataframe
 
 merged_filterd_mitosis <- cbind(
-  filtered_shift_Mitosis[, c("CoM_Ctrl")],
-  filtered_peak_Mitosis %>% select(ends_with("height_Ctrl"))
+  filtered_shift_Mitosis[, c("CoM_Ctrl")], # selecting a specific col
+  filtered_peak_Mitosis %>% select(ends_with("height_Ctrl")) # choosing only col that end with
 )
 
 head(merged_filterd_mitosis)
@@ -1178,12 +1180,11 @@ clean_merged_filterd_mitosis[is.na(clean_merged_filterd_mitosis)] <- 0
 
 # 4) do hirarchical clustering in order to analize number of clusters that could be found
 
-clean2_merged_filterd_mitosis <- as.matrix(clean2_merged_filterd_mitosis)   # Convert to numeric matrix if it's not already
 
 # Distance matrix (Euclidean)
-dist_matrix <- dist(clean2_merged_filterd_mitosis)
+dist_matrix <- dist(clean_merged_filterd_mitosis)
 
-# Hierarchical clustering with different linkage methods
+# Hierarchical clustering (Wards)
 hc_ward <- hclust(dist_matrix, method = "ward.D2")
 
 # Plot dendrogram
@@ -1221,11 +1222,6 @@ Everything that does not meet these conditions is filtered out and labeled as no
 ```{r}
 library(dplyr)
 
-# Optionally remove constant columns
-
-#clean2_merged_filterd_mitosis <- clean_merged_filterd_mitosis[, apply(clean_merged_filterd_mitosis, 2, function(col) sd(col, na.rm = TRUE) != 0)]
-
-
 # Load libraries => fals nicht installiert mussen die instaliert werden
 #install.packages("dbscan")
 #install.packages("factoextra")
@@ -1237,19 +1233,19 @@ library(factoextra)
 
 
 # Scale data
-scaled_data <- scale(clean2_merged_filterd_mitosis)
+scaled_data <- scale(clean_merged_filterd_mitosis) # substracts mean, scales it by dividing sd=> data was normalized per row => here Goal is compare Proteins 
 
-# DBSCAN # its important to choose eps and minPts correctly, eps is the max distance for two points to be neighbors, minPts  minimum number of points required to form a dense region ( here i choose x based on the dimension of the data and the averedge protein komplex )
+# DBSCAN # its important to choose eps and minPts correctly, eps is the max distance for two points to be neighbors, minPts  minimum number of points required to form a dense region.
 
-db <- dbscan(scaled_data, eps = 0.7, minPts = 4) # here parameters can be changed
+db <- dbscan(scaled_data, eps = 0.7, minPts = 4) # parameters can be changed
 
 # PCA for plotting
-pca <- prcomp(scaled_data)
-pca_df <- as.data.frame(pca$x[, 1:2])  # PC1 and PC2
+pca <- prcomp(scaled_data) # function for PCA
+pca_df <- as.data.frame(pca$x[, 1:2])  # PC1 and PC2, for all Proteins 
 pca_df$cluster <- as.factor(db$cluster)
-pca_df$protein <- rownames(clean2_merged_filterd_mitosis)  # Protein names from cleaned data 
+pca_df$protein <- rownames(clean_merged_filterd_mitosis)  # Protein names from cleaned data 
 
-# Plot with noise in grey
+# Plot with noise in grey plots data extracted from 
 
 ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster, label = ifelse(cluster == 0, "", protein))) +
   geom_point(size = 2) +
@@ -1262,13 +1258,16 @@ ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster, label = ifelse(cluster == 
   theme(plot.title = element_text(face = "bold"))
 
 # Create table: which proteins are in which cluster
-clustered_proteins <- split(rownames(clean2_merged_filterd_mitosis), db$cluster)
+clustered_proteins <- split(rownames(clean_merged_filterd_mitosis), db$cluster) # asignes the cluster to each Protein name from original dataframe 
 
 # Print each cluster's members
-for (cl in sort(unique(db$cluster))) {
-  cat(paste0("Cluster ", cl, ifelse(cl == 0, " (noise)", ""), ": "))
-  cat(paste(clustered_proteins[[as.character(cl)]], collapse = ", "))
-  cat("\n\n")
+for (cl in sort(unique(db$cluster))) { # loops over each cluster number in sorted order
+  
+  cat(paste0("Cluster ", cl, ifelse(cl == 0, " (noise)", ""), ": ")) # pastes to console , separation of cluster name from list of Proteins 
+  
+  cat(paste(clustered_proteins[[as.character(cl)]], collapse = ", ")) # extracts list of proteins and collapses them 
+  
+  cat("\n\n") # adds spacing between clusters 
 }
 ```
 
