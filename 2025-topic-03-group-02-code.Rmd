@@ -19,6 +19,19 @@ knitr::opts_chunk$set(echo = TRUE)
 - Briefly explain for which functions/steps are these needed
 
 ```{r, message=FALSE, warning=FALSE}
+#General
+library(tidyverse)   # collection of tidy data tools (ggplot2, dplyr, tidyr, etc.) for wrangling, plotting, and transforming datasets --> specifically used libraries explained and loaded as well for an overview 
+library(tidyr)       #  provides functions for transforming and reshaping data structures — used for pivot_wider to convert long-format correlation data into a wide matrix for heatmap input
+library(pheatmap)    # generates customizable heatmaps; used to visualize the Spearman correlation matrix between all replicate-fraction combinations
+library(glue) # easy string construction with embedded variables and functions
+library(ggplot2) # various plots (elegant, versatile and easy to use)
+library(dplyr) # for conditional logic with case_when inside plot aesthetics, also for filtering and selecting relevant data <- @Sofia: nur bei mir... kann sein, dass ihr da noch andere funktionen von nutzt , Cihan hat nachgeschaut und ergänzt :=)
+
+# Chunk Additional Data 
+library(httr) # making API requests to UniProt (GET requests and response handling)
+library(jsonlite) #parsing JSON responses from the UniProt API 
+library(pbapply) # applying functions with a progress bar
+library(data.table) # fast loading of large tables (CORUM) and simple grouping / restructuring of data using [i, j, by] syntax
 
 ```
 
@@ -32,8 +45,6 @@ MS_Table <- read.table("RDeeP_HeLa_Mitosis.csv", header = TRUE, row.names = 1, s
 ### Goal: 
 - Get a feeling for the dataset and decide on necessary clean-up steps
 ```{r}
-library(glue)
-
 glue("Number of proteins analysed /rows : {nrow(MS_Table)}")
 glue("Number of columns: {ncol(MS_Table)} (25 fractions with each 3 replicates for Ctrl and RNase treatment)")
 glue("Classifikation of variables: {unique(sapply(MS_Table, class))}")
@@ -48,7 +59,7 @@ glue("Overall maximum intenstity: {max(MS_Table)}")
 - Build a function to plot protein profiles using the normalized data  
 - Confirm experimental reproducibility by comparing intensity profiles across replicates
 
-## Normalization of triplicates
+## Normalization of triplicates - Lina
 ```{r}
 # Create a metadata dataframe with factor columns that map each MS_Table column to its experimental treatment, replicate, and fraction number
 treatment <- factor(rep(c("Ctrl", "RNase"), each = 3, length.out = 150))
@@ -87,14 +98,12 @@ MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 ```
 
 
-## Plot showing variance of our data 
+## Plot showing variance of our data - Sofia
 ```{r}
 
 # -------------- PART 1: Plot for standart deviation for all 7159 proteins from MS_Table_Averages for each fraction for the CTRL condition ----------
 
-
-
-library(ggplot2)
+library(dplyr)
 
 # 1. Select Ctrl columns using grep
 ctrl_cols <- grep("^Ctrl_Fraction_", colnames(MS_Table_Averages), value = TRUE)
@@ -141,13 +150,14 @@ ggplot(summary_df, aes(x = Protein, y = Mean)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
-## Normalization to 100
+
+## Normalization to 100 - Cihan
 ### Goal: 
 - Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
-- Will help with easier visualtization of the plots
+- for less variance between the fractions --> This allows comparison of distribution shapes independent of absolute abundance
 ```{r}
 # Split up Control and RNAse values 
-ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages)) # grep function genauer schauen 
+ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages))  
 rnase_cols <- grep("^RNase_", colnames(MS_Table_Averages))
 
 # Normalization of each group to 100 
@@ -266,8 +276,6 @@ for (treatment in c("Ctrl", "RNase")) {
 head(full_correlation_results)
 
 
-library(tidyverse)
-library(pheatmap)
 
 # create column for each axis 
 full_correlation_results <- full_correlation_results %>%
@@ -660,9 +668,6 @@ head(Shift_Data)
 ## Plot T-Test Results - Lina
 GOAL: Plot t-test results by visualizing CoM positions in Ctrl vs. RNase 
 ```{r}
-library(ggplot2)
-library(dplyr)
-
 # Create scatter plot of CoM values in Ctrl (x) vs. RNase (y) for all proteins
 # Color points based on t-test result (significant or not)
 ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
@@ -689,7 +694,6 @@ This includes:
 - Calculation of a hit rate (percentage of known RBPs detected as T-test positives)
 - Validation with literature-supported positive and negative control proteins
 ```{r}
-library(glue)
 
 # Load annotated RNA-binding proteins (RBPs) from UniProt (human-specific)
 uniprot_rbps <- read.delim("uniprotkb_RNA_binding_HUMAN_AND_model_o_2025_06_09.tsv", 
@@ -803,9 +807,6 @@ for (s in t_test_positives_critical_p_value){
 This plot extends the CoM-based T-test visualization by highlighting known RBPs from UniProt.
 This view helps assess the sensitivity and limitations of the shift-based identification method relative to external RBP annotations.
 ```{r}
-library(ggplot2)
-library(dplyr)
-
 # Create data subset of proteins for highlighting (was nessesary for coloring sequence)
 highlight_data <- subset(Shift_Data,
                          rownames(Shift_Data) %in% overlap_t_test |
@@ -1069,7 +1070,6 @@ This section compares proteins identified as RNA-binding by T-test in mitotic vs
 We analyze the overlap between datasets, list proteins uniquely shifted during mitosis, and visualize differences in shift characteristics.
 Finally, a scatterplot compares shift distances across both conditions and highlights condition-specific RBPs.
 ```{r}
-library(glue)
 
 # Identify proteins classified as significant RBPs in non-synchronized HeLa cells
 t_test_positives_NS <- rownames(Shift_Data_NS[Shift_Data_NS$significant_ttest_filtered == TRUE & !is.na(Shift_Data_NS$significant_ttest_filtered), ])
@@ -1113,9 +1113,6 @@ head(Shift_Data_Combined)
 
 #Scatterplot of shift distances
 
-library(ggplot2)
-library(dplyr)
-
 ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`,
                                 y = `shift_distance_nonSync`,
                                 color = case_when(
@@ -1152,9 +1149,10 @@ Goal: select necessary parameters/ dimensions, get an idea of the distribution o
 -Peak_data is mainly taken into consideration, specifically peak hight ( not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant. Overall similar hight is more important than similar peak fraction. Runs only on RBPS only active in mitosis ( when compared to synchronized cells). Wards method ( euclidean distance applied), !i think here we have to say it didnt work. 
 
 ```{r}
-#from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis !! hier stimmt was nicht.
 
 library(dplyr)
+
+#from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis !! hier stimmt was nicht.
 
 # 1) Filter only the RBPs relevant in Mitosis 
 
@@ -1439,21 +1437,18 @@ or predicting molecular weight from peak position.
 - Complex membership based on the CORUM database (HUMAN complexes only)
 
 ```{r}
-library(httr)
-library(jsonlite)
-library(pbapply)  # für Fortschrittsbalken bei langen Listen
-
 # Map each protein's UniProt entry name to its accession ID
 get_accession_from_entryname <- function(entry_name) {
   url <- paste0("https://rest.uniprot.org/uniprotkb/search?query=", entry_name, "&fields=accession&format=json&size=1")
   res <- try(GET(url), silent = TRUE)
   if (inherits(res, "try-error") || res$status_code != 200) {
     return(NA)
-  }
+    }
   txt <- content(res, "text", encoding = "UTF-8")
   data <- fromJSON(txt, simplifyVector = FALSE)
   if (length(data$results) == 0) {
-    return(NA)}
+    return(NA)
+    }
   else{
   return(data$results[[1]]$primaryAccession)}
     
@@ -1465,7 +1460,7 @@ get_uniprot_mass <- function(accession_ids) {
   res <- try(GET(url), silent = TRUE)
   if (inherits(res, "try-error") || res$status_code != 200) {
     return(NA)
-  }
+    }
   data <- fromJSON(content(res, "text", encoding = "UTF-8"))
   return(data$sequence$molWeight)
 }
@@ -1489,7 +1484,6 @@ protein_data <- data.frame(
 )
 
 # Load CORUM data (human protein complexes only)
-library(data.table)
 corum <- fread("corum_humanComplexes.txt", sep = "\t", header = TRUE) 
 
 # Expand CORUM entries /Unlist so each UniProt ID is listed individually with its complex name
@@ -1648,9 +1642,6 @@ linear_reference <- lm(y ~ x, data = reference_proteins)
 CORUM_comlexes <- protein_data[protein_data$CORUM_member == TRUE, ]
 CORUM_comlexes <- Protein_Data_for_LR[rownames(Protein_Data_for_LR) %in% CORUM_comlexes$Entry, ]
 
-library(ggplot2)
-library(dplyr)
-
 # Scatter plot with reference line and annotations
 ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_peak_position_RNase, y = MolecularWeight_kDa)) +
   geom_point(aes(color = "All analysed Proteins")) +
@@ -1727,152 +1718,7 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = Significant)) +
 
 ```
 
-## Cluster Cihan Try
-```{r}
-# 1) Filter only the RBPs relevant in Mitosis 
-filtered_shift_Mitosis <- Shift_Data[rownames(Shift_Data) %in% RBPs_Mitosis, ]
-filtered_peak_Mitosis <- Peak_Data[rownames(Peak_Data) %in% RBPs_Mitosis, ]
 
-# 2) Selecting only the interesting Ctrl peak columns 
-ctrl_peak_cols_cluster <- grep("_Ctrl$", colnames(filtered_peak_Mitosis), value = TRUE)
-merged_filterd_mitosis <- filtered_peak_Mitosis[, ctrl_peak_cols_cluster]
-
-# 3) Clean data
-merged_filterd_mitosis[is.na(merged_filterd_mitosis)] <- 0
-
-clean2_merged_filterd_mitosis <- merged_filterd_mitosis[, apply(merged_filterd_mitosis, 2, function(col) sd(col) != 0)]
-
-# 4) Prepare matrix for clustering
-clean2_merged_filterd_mitosis <- as.matrix(clean2_merged_filterd_mitosis)
-
-# 5) Distance and hierarchical clustering
-dist_matrix <- dist(clean2_merged_filterd_mitosis)
-hc_ward <- hclust(dist_matrix, method = "ward.D2")
-
-# 6) Plot dendrogram
-par(mfrow = c(1,1), mar = c(5, 4, 4, 2))
-plot(hc_ward,
-     labels = FALSE,
-     main = "Ward's Method",
-     xlab = "", ylab = "Height",
-     cex = 1.2,
-     hang = -1)
-
-# 7) Assign clusters (e.g., k = 6)
-cluster_membership <- cutree(hc_ward, k = 10)
-
-# 8) Store clustering result in a data frame
-protein_clusters <- data.frame(
-  Protein = rownames(clean2_merged_filterd_mitosis),
-  Cluster = cluster_membership
-)
-
-# 9) Sort by cluster number
-protein_clusters_sorted <- protein_clusters[order(protein_clusters$Cluster), ]
-
-table(protein_clusters_sorted$Cluster)
-
-# 11) Optional: Plot proteins in a selected cluster, e.g., cluster 5
-cluster5_proteins <- protein_clusters_sorted[protein_clusters_sorted$Cluster == 8, "Protein"]
-
-for (r in cluster5_proteins) {
-  plot_protein(r)
-}
-
-
-
-
-
-
-
-library(cluster)
-
-# Distanzmatrix und hclust musst du vorher schon haben:
-# dist_matrix <- dist(peak_matrix)
-# hc_ward <- hclust(dist_matrix, method = "ward.D2")
-
-sil_scores <- numeric()
-
-# Schleife für k = 2 bis 10
-for (k in 2:10) {
-  cluster_assignments <- cutree(hc_ward, k = k)
-  sil <- silhouette(cluster_assignments, dist_matrix)
-  sil_scores[k] <- mean(sil[, 3])  # Durchschnittliche Silhouettenbreite
-}
-
-# Plot
-plot(2:10, sil_scores[2:10], type = "b", pch = 19,
-     xlab = "Anzahl Cluster (k)",
-     ylab = "Durchschnittliche Silhouettenbreite",
-     main = "Silhouettenanalyse für hierarchisches Clustering")
-
-
-
-```
-
-## Zweiter Chunk des Clusters
-```{r}
-# 1. peak1_position_Ctrl & peak1_height_Ctrl vorbereiten
-peak1_df <- data.frame(
-  Protein = rownames(Peak_Data),
-  peak1_position_Ctrl = Peak_Data$peak1_position_Ctrl,
-  peak1_height_Ctrl = Peak_Data$peak1_height_Ctrl
-)
-
-# 2. Merge mit den Clusterzuordnungen
-peak_data_with_clusters <- merge(
-  protein_clusters_sorted,
-  peak1_df,
-  by = "Protein"
-)
-
-# 3. Leere Liste zur Speicherung der gefilterten Cluster initialisieren
-filtered_clusters <- list()
-
-# 4. Schleife über alle Cluster
-for (cl in unique(peak_data_with_clusters$Cluster)) {
-  cluster_subset <- subset(peak_data_with_clusters, Cluster == cl)
-  
-  # Rundung auf ganze Zahlen zur Peakgruppierung
-  peak_pos <- round(cluster_subset$peak1_position_Ctrl)
-  
-  # Häufigste Peakposition
-  freq_table <- table(peak_pos)
-  if (length(freq_table) == 0) next  # überspringe leeren Cluster
-  top_peak <- as.numeric(names(freq_table)[which.max(freq_table)])
-  
-  # Erlaubte Positionen (±1)
-  allowed_range <- (top_peak - 1):(top_peak + 1)
-  
-  # Filter: Position innerhalb Range & Höhe mindestens 5
-  keep <- peak_pos %in% allowed_range & cluster_subset$peak1_height_Ctrl >= 5
-  filtered <- cluster_subset[keep, ]
-  
-  # Speichern
-  filtered_clusters[[paste0("Cluster_", cl)]] <- filtered
-}
-
-# 5. Alle gefilterten Cluster zusammenführen
-final_filtered_proteins <- do.call(rbind, filtered_clusters)
-
-# 6. Export als CSV
-write.csv(final_filtered_proteins, "RBP_FilteredByPeakPosition.csv", row.names = FALSE)
-
-# 7. Übersicht anzeigen
-table(final_filtered_proteins$Cluster)
-#
-
-## Plotten, nie streichen
-cluster3_proteins_final <- final_filtered_proteins[final_filtered_proteins$Cluster == 8, "Protein"]
-
-for (r in cluster3_proteins_final) {
-  plot_protein(r)
-}
-
-
-
-
-```
 
 ##looking at standart deviation and mean to get an idea 
 
