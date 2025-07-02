@@ -521,3 +521,250 @@ for (r in cluster3_proteins_final) {
 
 
 ```
+
+
+## doing a PCa analysis in order to look at the distribution of RBPS => could be applyed to selected RBPs from mytosis - Sofia
+```{r}
+# Rows = proteins, Columns = the 26 features you mentioned
+# First, remove rows with any NA values
+Peak_Data_clean <- na.omit(Peak_Data)
+
+# Remove columns with zero variance
+Peak_Data_clean_clean <- Peak_Data_clean[, apply(Peak_Data_clean, 2, function(col) sd(col, na.rm = TRUE) != 0)]
+
+# Perform PCA (center and scale the data)
+pca_result <- prcomp(Peak_Data_clean_clean, center = TRUE, scale. = TRUE)
+
+# Extract the scores for the first two principal components
+pc_scores <- as.data.frame(pca_result$x[, 1:2])
+
+# Add protein names as a column (assuming they are rownames)
+pc_scores$Protein <- rownames(pc_scores)
+
+# Create a new column that marks whether the protein is in t_test_positives (taken from further steps of the analysis)
+
+pc_scores$Significant <- ifelse(pc_scores$Protein %in% t_test_positives, "Yes", "No")
+
+# Plot the PCA
+ggplot(pc_scores, aes(x = PC1, y = PC2, color = Significant)) +
+  geom_point(alpha = 0.7, size = 1.5) +
+  scale_color_manual(values = c("Yes" = "red", "No" = "black")) +
+  theme_minimal() +
+  labs(title = "PCA of Protein Features (highlighting significant proteins)",
+       x = "PC1", y = "PC2", color = "Significant")
+
+
+```
+
+
+# completly new just trying to see if the normalisation was the reason our PC analysis wasnt working - Sofia 
+
+```{r}
+                        # neue Normalization that maybe works better: 
+
+
+# Log2 transformation (adding 1 to avoid log(0))
+MS_log <- log2(MS_Table_Averages + 1)
+
+# Row-wise z-score scaling: center and scale each protein across all samples (fractions)
+MS_scaled <- t(scale(t(MS_log)))
+
+rownames(MS_scaled) <- rownames(MS_Table_Averages)
+
+# Optional: check a few rows
+head(round(MS_scaled, 2))
+
+#filter proteins with low variance 
+# 1. Compute variance across proteins (handle NAs)
+var_filter <- apply(MS_scaled, 1, var, na.rm = TRUE)
+
+# 2. Compute the 75th percentile of variance, handling NAs in var_filter
+threshold <- quantile(var_filter, 0.75, na.rm = TRUE)
+
+# 3. Filter for high-variance proteins
+MS_highvar <- MS_scaled[var_filter > threshold, ]
+
+# If any are missing, fix them by assigning unique names
+
+rownames(MS_highvar) <- make.names(rownames(MS_highvar), unique = TRUE)
+
+
+
+                         # Linas code zu Peak characterization just applyed to my code 
+
+
+
+# fractions = x
+x <- 1:25
+
+# define treshold for peak and build function for peak detection
+find_peaks <- function(y, threshold = max(y) * 0.03) { 
+  peaks <- which(diff(sign(diff(y))) == -2) + 1 #(+1 shifts index back)
+  peaks[y[peaks]>= threshold] 
+}
+
+# create empty list for results
+peak_results <- list()
+
+# for loop over every protein
+for (p in seq_len(nrow(MS_highvar))) {
+  
+  # extract values for Ctrl and RNase
+  row_vals <- as.numeric(MS_highvar [p,])
+  ctrl_vals <- row_vals[seq(1, 50, by =2)]
+  rnase_vals <- row_vals[seq(2, 50, by=2)]
+  
+  # create empty list for results
+  results_row <- list()
+  
+  # for loop working with Ctrl values first, then with RNase values
+  for (cond in c("Ctrl", "RNase")) {
+    y <- if (cond == "Ctrl") ctrl_vals else rnase_vals 
+    
+    # find peaks with earlier build function, if no peak is detected peak1 is max intensity
+    peaks <- find_peaks(y)
+    if(length(peaks) == 0) {
+      peaks <- which.max(y)
+    }
+    
+    # store numer of peaks, but with a maximum of 6 
+    n_peaks <- min(length(peaks), 6)
+    
+    # extract peak height y_peaks and peak position x_peaks
+    y_peaks <- y[peaks]
+    x_peaks <- x[peaks]
+
+    # store different results in list 
+    results_row[[paste0("n_peaks_", cond)]] <- n_peaks
+    
+    for(n in seq_len(n_peaks)) {
+    results_row[[paste0("peak", n, "_height_", cond)]] <- y_peaks[n]
+    results_row[[paste0("peak", n, "_position_", cond)]] <- x_peaks[n]
+    }
+  }
+  # store protein results in lisr
+  peak_results[[p]] <- results_row
+}
+
+# befor we can store data in new dataframe, we need to assign NA to all columns that have no values 
+rows_df <- lapply(peak_results, function(x){
+  columns <- c("peak1_height", "peak1_position", "peak2_height", "peak2_position", "peak3_height", "peak3_position", "peak4_height", "peak4_position", "peak5_height", "peak5_position", "peak6_height", "peak6_position")
+  for (cond in c("Ctrl", "RNase")) {
+    for (c in columns) {
+      key <- paste0(c, "_", cond)
+      if(!(key %in% names(x))) {
+        x[[key]] <- NA
+      }
+    }
+  }
+  as.data.frame(x)
+})
+
+# store results in new DataFrame (note: rows_df is a list of dataframes so we need "do.call(r.bind,...)")
+Peak_Data2 <- do.call(rbind, rows_df)
+rownames(Peak_Data2) <- rownames(MS_highvar)
+
+# reorder columns of Peak_Data2
+order <- c("n_peaks_Ctrl", "n_peaks_RNase")
+
+for (i in 1:6) {
+  order <- c(order, 
+                 paste0("peak", i, "_height_Ctrl"),
+                 paste0("peak", i, "_position_Ctrl"),
+                 paste0("peak", i, "_height_RNase"),
+                 paste0("peak", i, "_position_RNase"))
+}
+
+Peak_Data2 <- Peak_Data2[, order]
+
+# show head of PeakData to check 
+head(Peak_Data2)
+
+colnames(Peak_Data2)
+
+
+
+
+                          # PCa jetzt auf neue daten runnen + vergleich zu RBPs 
+
+
+# Load required package
+library(ggplot2)
+
+
+# Assume your data is in a data frame called 'df'
+# Rows = proteins, Columns = the 26 features you mentioned
+# First, remove rows with any NA values
+Peak_Data_clean <- na.omit(Peak_Data2)
+
+# Remove columns with zero variance
+Peak_Data_clean_clean <- Peak_Data_clean[, apply(Peak_Data_clean, 2, function(col) sd(col, na.rm = TRUE) != 0)]
+
+# Perform PCA (center and scale the data)
+pca_result <- prcomp(Peak_Data_clean_clean, center = TRUE, scale. = TRUE)
+
+# Extract the scores for the first two principal components
+pc_scores <- as.data.frame(pca_result$x[, 1:2])
+
+# Add protein names as a column (assuming they are rownames)
+pc_scores$Protein <- rownames(pc_scores)
+
+# Create a new column that marks whether the protein is in t_test_positives (taken from further steps of the analysis)
+
+pc_scores$Significant <- ifelse(pc_scores$Protein %in% t_test_positives, "RBPs", "No")
+
+# Plot the PCA
+ggplot(pc_scores, aes(x = PC1, y = PC2, color = Significant)) +
+  geom_point(alpha = 0.7, size = 1.5) +
+  scale_color_manual(values = c("RBPs" = "red", "No" = "black")) +
+  theme_minimal() +
+  labs(title = "PCA of Protein Features (highlighting significant proteins)",
+       x = "PC1", y = "PC2", color = "Significant")
+
+
+```
+
+
+
+
+#  kmeans clustering nur auf RBPs in mitosis ( no selection of spefic parameters) - Sofia 
+```{r}
+# Filter only the RBPs relevant in Mitosis 
+filtered_data_shift <- Shift_Data[rownames(Shift_Data) %in% RBPs_Mitosis, ]
+
+# Load your dataset (CSV or kmeans frame)
+kmeans <- filtered_data_shift # Replace with your file or data frame
+
+
+# Select 4 specific columns by name or position
+
+
+K <- kmeans[, c("CoM_Ctrl", "CoM_RNase", "shift_distance")]  # Replace with column names
+
+K <- na.omit(K)          # Remove rows with any NA
+K <- as.matrix(K)        # Ensure it’s still a numeric matrix
+
+
+# Convert to matrix
+K <- as.matrix(K)
+
+# K-means clustering
+k <- 3                    #number of clusters 
+set.seed(42)
+kmeans_result <- kmeans(K, centers = k) # here i put in my data 
+
+# Reduce to 2D with PCA
+pca_results <- prcomp(K, scale. = TRUE)
+K_2D <- pca_results$x[, 1:2]
+
+# Plot clusters
+plot(K_2D, col = kmeans_result$cluster, pch = 19,
+     main = "K-means Clustering (PCA-reduced 2D)",
+     xlab = "PC1", ylab = "PC2")
+legend("topright", legend = paste("Cluster", 1:k), col = 1:k, pch = 19)
+
+
+
+
+
+```
