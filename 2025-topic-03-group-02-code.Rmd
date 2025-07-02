@@ -26,6 +26,7 @@ library(pheatmap)    # generates customizable heatmaps; used to visualize the Sp
 library(glue) # easy string construction with embedded variables and functions
 library(ggplot2) # various plots (elegant, versatile and easy to use)
 library(dplyr) # for conditional logic with case_when inside plot aesthetics, also for filtering and selecting relevant data <- @Sofia: nur bei mir... kann sein, dass ihr da noch andere funktionen von nutzt , Cihan hat nachgeschaut und ergänzt :=)
+library(dbscan) # neccesary for scaling in order to later run density based clustering
 
 # Chunk Additional Data 
 library(httr) # making API requests to UniProt (GET requests and response handling)
@@ -100,10 +101,10 @@ MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 
 ## Plot showing variance of our data - Sofia
 ```{r}
-
+library(dplyr)
 # -------------- PART 1: Plot for standart deviation for all 7159 proteins from MS_Table_Averages for each fraction for the CTRL condition ----------
 
-library(dplyr)
+
 
 # 1. Select Ctrl columns using grep
 ctrl_cols <- grep("^Ctrl_Fraction_", colnames(MS_Table_Averages), value = TRUE)
@@ -1150,8 +1151,6 @@ Goal: select necessary parameters/ dimensions, get an idea of the distribution o
 
 ```{r}
 
-library(dplyr)
-
 #from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis !! hier stimmt was nicht.
 
 # 1) Filter only the RBPs relevant in Mitosis 
@@ -1218,18 +1217,6 @@ There are also border points, which are within ε distance of a core point but d
 
 Everything that does not meet these conditions is filtered out and labeled as noise.
 ```{r}
-library(dplyr)
-
-# Load libraries => fals nicht installiert mussen die instaliert werden
-#install.packages("dbscan")
-#install.packages("factoextra")
-
-# Load libraries
-library(dbscan)
-library(ggplot2)
-library(factoextra)
-
-
 # 1) Scale data
 
 scaled_data <- scale(clean_merged_filterd_mitosis) # substracts mean, scales it by dividing sd=> data was normalized per row => here Goal is compare Proteins 
@@ -1338,9 +1325,6 @@ head(results_df)
 
 # -------------- PART 2: Creating a loop for all possible combinations for ε between the numbers ( 0.5-1.5) in steps of 0.1 and for MinPts (1-10) in steps of 1 ----------
 
-library(ggplot2)
-library(reshape2)
-
 
 # 1)Define your proteins of interest ( from Corum Data)
 
@@ -1360,15 +1344,16 @@ score_results <- data.frame()
 
 for (col_name in colnames(results_df)) { # selcts all coloums from DBSCAN combinations 
   
-  cluster_assignments <- as.numeric(results_df[[col_name]])
-  names(cluster_assignments) <- rownames(results_df)
+  cluster_assignments <- as.numeric(results_df[[col_name]]) # extracts data and converts to numeric
+  
+  names(cluster_assignments) <- rownames(results_df) # assignes its cluster number back to its protein name 
   
   pair_scores <- c()
 
   for (pair in protein_pairs) {
-    p1 <- pair[1]
-    p2 <- pair[2]
-    c1 <- cluster_assignments[p1]
+    p1 <- pair[1] # selects first protein 
+    p2 <- pair[2] # selects second protein 
+    c1 <- cluster_assignments[p1] 
     c2 <- cluster_assignments[p2]
 
     # Skip if NA
@@ -1378,9 +1363,9 @@ for (col_name in colnames(results_df)) { # selcts all coloums from DBSCAN combin
     # Both are targets
     } else if (p1 %in% target_proteins && p2 %in% target_proteins) {
       if (c1 == 0 || c2 == 0) {
-        score <- 0
+        score <- 0 # noise is always 0
       } else if (c1 == c2) {
-        score <- 1
+        score <- 1 # here when the two clusters are equal, its good 
       } else {
         score <- -1
       }
@@ -1389,26 +1374,26 @@ for (col_name in colnames(results_df)) { # selcts all coloums from DBSCAN combin
     } else if ((p1 %in% negative_controls && p2 %in% target_proteins) || 
                (p2 %in% negative_controls && p1 %in% target_proteins)) {
       if (c1 == 0 || c2 == 0) {
-        score <- 0
+        score <- 0 # noise is always 0
       } else if (c1 == c2) {
-        score <- -1
+        score <- -1 # here when the two clusters are equal its bad 
       } else {
         score <- 1  # Properly separated
       }
 
     # Both are negative controls – don't score this pair
     } else {
-      next
+      next # skips scoring booth negatives 
     }
 
-    pair_scores <- c(pair_scores, score)
+    pair_scores <- c(pair_scores, score) # apart from neg neg pairs all resulting scores are listed  
   }
 
-  avg_score <- mean(pair_scores, na.rm = TRUE)
+  avg_score <- mean(pair_scores, na.rm = TRUE) # computes the avaredge 
 
-  parts <- strcapture("eps_([0-9.]+)_minPts_([0-9]+)", col_name, data.frame(eps = 0, minPts = 0))
+  parts <- strcapture("eps_([0-9.]+)_minPts_([0-9]+)", col_name, data.frame(eps = 0, minPts = 0))# extracts from colnames the values for eps and minPts as numbers 
   
-  score_results <- rbind(score_results, data.frame(
+  score_results <- rbind(score_results, data.frame( # three columns 
     eps = as.numeric(parts$eps),
     minPts = as.numeric(parts$minPts),
     score = avg_score
