@@ -1232,20 +1232,22 @@ library(ggplot2)
 library(factoextra)
 
 
-# Scale data
+# 1) Scale data
+
 scaled_data <- scale(clean_merged_filterd_mitosis) # substracts mean, scales it by dividing sd=> data was normalized per row => here Goal is compare Proteins 
 
-# DBSCAN # its important to choose eps and minPts correctly, eps is the max distance for two points to be neighbors, minPts  minimum number of points required to form a dense region.
+# 2) DBSCAN # its important to choose eps and minPts correctly, eps is the max distance for two points to be neighbors, minPts  minimum number of points required to form a dense region.
 
 db <- dbscan(scaled_data, eps = 0.7, minPts = 4) # parameters can be changed
 
-# PCA for plotting
+# 3) PCA for plotting
+
 pca <- prcomp(scaled_data) # function for PCA
 pca_df <- as.data.frame(pca$x[, 1:2])  # PC1 and PC2, for all Proteins 
 pca_df$cluster <- as.factor(db$cluster)
 pca_df$protein <- rownames(clean_merged_filterd_mitosis)  # Protein names from cleaned data 
 
-# Plot with noise in grey plots data extracted from 
+# 4) Plot with noise in grey
 
 ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster, label = ifelse(cluster == 0, "", protein))) +
   geom_point(size = 2) +
@@ -1257,7 +1259,8 @@ ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster, label = ifelse(cluster == 
        color = "Cluster") +
   theme(plot.title = element_text(face = "bold"))
 
-# Create table: which proteins are in which cluster
+# 5) Create table: which proteins are in which cluster
+
 clustered_proteins <- split(rownames(clean_merged_filterd_mitosis), db$cluster) # asignes the cluster to each Protein name from original dataframe 
 
 # Print each cluster's members
@@ -1278,6 +1281,7 @@ Goal: Looking if the plots look similar or not in order to validate the paramete
 ```{r}
 # code from ploting a protein to visualize the proteins that seam to make a complex
 # View Examples
+
 sample_RBPs_Cluster <- c("RL22_HUMAN", "RL23_HUMAN", "RL24_HUMAN", "RL27_HUMAN", "RL30_HUMAN", "RL34_HUMAN", "RLA1_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN", "RS12_HUMAN") # insert names of clustered proteins you want to compare 
 
 for (r in sample_RBPs_Cluster){
@@ -1310,7 +1314,7 @@ If noise → 0 (I’m least sure about this case)
 
 # -------------- PART 1: Creating a loop for all possible combinations for ε between the numbers ( 0.5-1.5) in steps of 0.1 and for MinPts (1-10) in steps of 1 ----------
 
-# 1. Scale the data
+# 1. Scale data like chunk before 
 scaled_data <- scale(clean_merged_filterd_mitosis)
 protein_names <- rownames(clean_merged_filterd_mitosis)
 n_proteins <- nrow(scaled_data)
@@ -1323,7 +1327,7 @@ for (eps in seq(0.5, 1.5, by = 0.1)) {
   for (minPts in 1:10) {
     
     # Run DBSCAN
-    db <- dbscan(scaled_data, eps = eps, minPts = minPts)
+    db <- dbscan(scaled_data, eps = eps, minPts = minPts) # runs combinations 
     
     # Store cluster assignments
     col_name <- paste0("eps_", eps, "_minPts_", minPts)
@@ -1340,22 +1344,23 @@ library(ggplot2)
 library(reshape2)
 
 
-# 1)Define your proteins of interest
+# 1)Define your proteins of interest ( from Corum Data)
 
 target_proteins <- c("RS12_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN") # this would be positiv controll, a complex we know about. 
 
-negative_controls <- c("LPPRC_HUMAN", "UIMC1_HUMAN")  # Here a explenation (biological is needed as to why i choose these )
+negative_controls <- c("LPPRC_HUMAN", "UIMC1_HUMAN")
 
 all_proteins <- c(target_proteins, negative_controls)
 
-# 2) create all pairwise combinations
+# 2) create all pairwise combinations (postiv control)
 
-protein_pairs <- combn(all_proteins, 2, simplify = FALSE)
+protein_pairs <- combn(all_proteins, 2, simplify = FALSE) 
 
 # --- Step 4: scoring for each DBSCAN setting ---
+
 score_results <- data.frame()
 
-for (col_name in colnames(results_df)) {
+for (col_name in colnames(results_df)) { # selcts all coloums from DBSCAN combinations 
   
   cluster_assignments <- as.numeric(results_df[[col_name]])
   names(cluster_assignments) <- rownames(results_df)
