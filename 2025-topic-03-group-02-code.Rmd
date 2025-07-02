@@ -19,6 +19,16 @@ knitr::opts_chunk$set(echo = TRUE)
 - Briefly explain for which functions/steps are these needed
 
 ```{r, message=FALSE, warning=FALSE}
+#General
+library(glue) # easy string construction with embedded variables and functions
+library(ggplot2) # various plots (elegant, versatile and easy to use)
+library(dplyr) # for conditional logic with case_when inside plot aesthetics <- @ Cihan und Sofia: nur bei mir... kann sein, dass ihr da noch andere funktionen von nutzt 
+
+# Chunk Additional Data 
+library(httr) # making API requests to UniProt (GET requests and response handling)
+library(jsonlite) #parsing JSON responses from the UniProt API 
+library(pbapply) # applying functions with a progress bar
+library(data.table) # fast loading of large tables (CORUM) and simple grouping / restructuring of data using [i, j, by] syntax
 
 ```
 
@@ -32,8 +42,6 @@ MS_Table <- read.table("RDeeP_HeLa_Mitosis.csv", header = TRUE, row.names = 1, s
 ### Goal: 
 - Get a feeling for the dataset and decide on necessary clean-up steps
 ```{r}
-library(glue)
-
 glue("Number of proteins analysed /rows : {nrow(MS_Table)}")
 glue("Number of columns: {ncol(MS_Table)} (25 fractions with each 3 replicates for Ctrl and RNase treatment)")
 glue("Classifikation of variables: {unique(sapply(MS_Table, class))}")
@@ -48,7 +56,7 @@ glue("Overall maximum intenstity: {max(MS_Table)}")
 - Build a function to plot protein profiles using the normalized data  
 - Confirm experimental reproducibility by comparing intensity profiles across replicates
 
-## Normalization of triplicates
+## Normalization of triplicates - Lina
 ```{r}
 # Create a metadata dataframe with factor columns that map each MS_Table column to its experimental treatment, replicate, and fraction number
 treatment <- factor(rep(c("Ctrl", "RNase"), each = 3, length.out = 150))
@@ -87,14 +95,10 @@ MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 ```
 
 
-## Plot showing variance of our data 
+## Plot showing variance of our data - Sofia
 ```{r}
 
 # -------------- PART 1: Plot for standart deviation for all 7159 proteins from MS_Table_Averages for each fraction for the CTRL condition ----------
-
-
-
-library(ggplot2)
 
 # 1. Select Ctrl columns using grep
 ctrl_cols <- grep("^Ctrl_Fraction_", colnames(MS_Table_Averages), value = TRUE)
@@ -141,7 +145,7 @@ ggplot(summary_df, aes(x = Protein, y = Mean)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
-## Normalization to 100
+## Normalization to 100 -Cihan
 ### Goal: 
 - Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
 - Will help with easier visualtization of the plots
@@ -660,9 +664,6 @@ head(Shift_Data)
 ## Plot T-Test Results - Lina
 GOAL: Plot t-test results by visualizing CoM positions in Ctrl vs. RNase 
 ```{r}
-library(ggplot2)
-library(dplyr)
-
 # Create scatter plot of CoM values in Ctrl (x) vs. RNase (y) for all proteins
 # Color points based on t-test result (significant or not)
 ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
@@ -689,7 +690,6 @@ This includes:
 - Calculation of a hit rate (percentage of known RBPs detected as T-test positives)
 - Validation with literature-supported positive and negative control proteins
 ```{r}
-library(glue)
 
 # Load annotated RNA-binding proteins (RBPs) from UniProt (human-specific)
 uniprot_rbps <- read.delim("uniprotkb_RNA_binding_HUMAN_AND_model_o_2025_06_09.tsv", 
@@ -803,9 +803,6 @@ for (s in t_test_positives_critical_p_value){
 This plot extends the CoM-based T-test visualization by highlighting known RBPs from UniProt.
 This view helps assess the sensitivity and limitations of the shift-based identification method relative to external RBP annotations.
 ```{r}
-library(ggplot2)
-library(dplyr)
-
 # Create data subset of proteins for highlighting (was nessesary for coloring sequence)
 highlight_data <- subset(Shift_Data,
                          rownames(Shift_Data) %in% overlap_t_test |
@@ -1069,7 +1066,6 @@ This section compares proteins identified as RNA-binding by T-test in mitotic vs
 We analyze the overlap between datasets, list proteins uniquely shifted during mitosis, and visualize differences in shift characteristics.
 Finally, a scatterplot compares shift distances across both conditions and highlights condition-specific RBPs.
 ```{r}
-library(glue)
 
 # Identify proteins classified as significant RBPs in non-synchronized HeLa cells
 t_test_positives_NS <- rownames(Shift_Data_NS[Shift_Data_NS$significant_ttest_filtered == TRUE & !is.na(Shift_Data_NS$significant_ttest_filtered), ])
@@ -1113,9 +1109,6 @@ head(Shift_Data_Combined)
 
 #Scatterplot of shift distances
 
-library(ggplot2)
-library(dplyr)
-
 ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`,
                                 y = `shift_distance_nonSync`,
                                 color = case_when(
@@ -1150,9 +1143,10 @@ ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`,
 Goal: select necessary parameters/ dimensions, get an idea of the distribution of clusters. Peak data is mainly taken into consideration, specifically peak hight ( not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant, overall. overall similar hight is more important than similar peak fraction. Runs only on RBPS only active in mitosis ( when compared to synchronized cells). Wards method ( euclidean distance applied), !i think here we have to say it didnt work. 
 
 ```{r}
-#from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis !! hier stimmt was nicht.
 
 library(dplyr)
+
+#from the two shift and peak characteristics we extract some variables creating a new merged table which also has only the names of the RBPs that are aktive in mitosis !! hier stimmt was nicht.
 
 # 1) Filter only the RBPs relevant in Mitosis 
 
@@ -1435,21 +1429,18 @@ or predicting molecular weight from peak position.
 - Complex membership based on the CORUM database (HUMAN complexes only)
 
 ```{r}
-library(httr)
-library(jsonlite)
-library(pbapply)  # für Fortschrittsbalken bei langen Listen
-
 # Map each protein's UniProt entry name to its accession ID
 get_accession_from_entryname <- function(entry_name) {
   url <- paste0("https://rest.uniprot.org/uniprotkb/search?query=", entry_name, "&fields=accession&format=json&size=1")
   res <- try(GET(url), silent = TRUE)
   if (inherits(res, "try-error") || res$status_code != 200) {
     return(NA)
-  }
+    }
   txt <- content(res, "text", encoding = "UTF-8")
   data <- fromJSON(txt, simplifyVector = FALSE)
   if (length(data$results) == 0) {
-    return(NA)}
+    return(NA)
+    }
   else{
   return(data$results[[1]]$primaryAccession)}
     
@@ -1461,7 +1452,7 @@ get_uniprot_mass <- function(accession_ids) {
   res <- try(GET(url), silent = TRUE)
   if (inherits(res, "try-error") || res$status_code != 200) {
     return(NA)
-  }
+    }
   data <- fromJSON(content(res, "text", encoding = "UTF-8"))
   return(data$sequence$molWeight)
 }
@@ -1485,7 +1476,6 @@ protein_data <- data.frame(
 )
 
 # Load CORUM data (human protein complexes only)
-library(data.table)
 corum <- fread("corum_humanComplexes.txt", sep = "\t", header = TRUE) 
 
 # Expand CORUM entries /Unlist so each UniProt ID is listed individually with its complex name
@@ -1643,9 +1633,6 @@ linear_reference <- lm(y ~ x, data = reference_proteins)
 # Extract subset of CORUM-listed complex members (for highlighting in scatter plot)
 CORUM_comlexes <- protein_data[protein_data$CORUM_member == TRUE, ]
 CORUM_comlexes <- Protein_Data_for_LR[rownames(Protein_Data_for_LR) %in% CORUM_comlexes$Entry, ]
-
-library(ggplot2)
-library(dplyr)
 
 # Scatter plot with reference line and annotations
 ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_peak_position_RNase, y = MolecularWeight_kDa)) +
