@@ -20,9 +20,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, message=FALSE, warning=FALSE}
 #General
+library(tidyverse)   # collection of tidy data tools (ggplot2, dplyr, tidyr, etc.) for wrangling, plotting, and transforming datasets --> specifically used libraries explained and loaded as well for an overview 
+library(tidyr)       #  provides functions for transforming and reshaping data structures — used for pivot_wider to convert long-format correlation data into a wide matrix for heatmap input
+library(pheatmap)    # generates customizable heatmaps; used to visualize the Spearman correlation matrix between all replicate-fraction combinations
 library(glue) # easy string construction with embedded variables and functions
 library(ggplot2) # various plots (elegant, versatile and easy to use)
-library(dplyr) # for conditional logic with case_when inside plot aesthetics <- @Cihan und Sofia: nur bei mir... kann sein, dass ihr da noch andere funktionen von nutzt 
+library(dplyr) # for conditional logic with case_when inside plot aesthetics, also for filtering and selecting relevant data <- @Sofia: nur bei mir... kann sein, dass ihr da noch andere funktionen von nutzt , Cihan hat nachgeschaut und ergänzt :=)
 
 # Chunk Additional Data 
 library(httr) # making API requests to UniProt (GET requests and response handling)
@@ -147,13 +150,14 @@ ggplot(summary_df, aes(x = Protein, y = Mean)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
-## Normalization to 100 -Cihan
+
+## Normalization to 100 - Cihan
 ### Goal: 
 - Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
-- Will help with easier visualtization of the plots
+- for less variance between the fractions --> This allows comparison of distribution shapes independent of absolute abundance
 ```{r}
 # Split up Control and RNAse values 
-ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages)) # grep function genauer schauen 
+ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages))  
 rnase_cols <- grep("^RNase_", colnames(MS_Table_Averages))
 
 # Normalization of each group to 100 
@@ -272,8 +276,6 @@ for (treatment in c("Ctrl", "RNase")) {
 head(full_correlation_results)
 
 
-library(tidyverse)
-library(pheatmap)
 
 # create column for each axis 
 full_correlation_results <- full_correlation_results %>%
@@ -1711,152 +1713,7 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = Significant)) +
 
 ```
 
-## Cluster Cihan Try
-```{r}
-# 1) Filter only the RBPs relevant in Mitosis 
-filtered_shift_Mitosis <- Shift_Data[rownames(Shift_Data) %in% RBPs_Mitosis, ]
-filtered_peak_Mitosis <- Peak_Data[rownames(Peak_Data) %in% RBPs_Mitosis, ]
 
-# 2) Selecting only the interesting Ctrl peak columns 
-ctrl_peak_cols_cluster <- grep("_Ctrl$", colnames(filtered_peak_Mitosis), value = TRUE)
-merged_filterd_mitosis <- filtered_peak_Mitosis[, ctrl_peak_cols_cluster]
-
-# 3) Clean data
-merged_filterd_mitosis[is.na(merged_filterd_mitosis)] <- 0
-
-clean2_merged_filterd_mitosis <- merged_filterd_mitosis[, apply(merged_filterd_mitosis, 2, function(col) sd(col) != 0)]
-
-# 4) Prepare matrix for clustering
-clean2_merged_filterd_mitosis <- as.matrix(clean2_merged_filterd_mitosis)
-
-# 5) Distance and hierarchical clustering
-dist_matrix <- dist(clean2_merged_filterd_mitosis)
-hc_ward <- hclust(dist_matrix, method = "ward.D2")
-
-# 6) Plot dendrogram
-par(mfrow = c(1,1), mar = c(5, 4, 4, 2))
-plot(hc_ward,
-     labels = FALSE,
-     main = "Ward's Method",
-     xlab = "", ylab = "Height",
-     cex = 1.2,
-     hang = -1)
-
-# 7) Assign clusters (e.g., k = 6)
-cluster_membership <- cutree(hc_ward, k = 10)
-
-# 8) Store clustering result in a data frame
-protein_clusters <- data.frame(
-  Protein = rownames(clean2_merged_filterd_mitosis),
-  Cluster = cluster_membership
-)
-
-# 9) Sort by cluster number
-protein_clusters_sorted <- protein_clusters[order(protein_clusters$Cluster), ]
-
-table(protein_clusters_sorted$Cluster)
-
-# 11) Optional: Plot proteins in a selected cluster, e.g., cluster 5
-cluster5_proteins <- protein_clusters_sorted[protein_clusters_sorted$Cluster == 8, "Protein"]
-
-for (r in cluster5_proteins) {
-  plot_protein(r)
-}
-
-
-
-
-
-
-
-library(cluster)
-
-# Distanzmatrix und hclust musst du vorher schon haben:
-# dist_matrix <- dist(peak_matrix)
-# hc_ward <- hclust(dist_matrix, method = "ward.D2")
-
-sil_scores <- numeric()
-
-# Schleife für k = 2 bis 10
-for (k in 2:10) {
-  cluster_assignments <- cutree(hc_ward, k = k)
-  sil <- silhouette(cluster_assignments, dist_matrix)
-  sil_scores[k] <- mean(sil[, 3])  # Durchschnittliche Silhouettenbreite
-}
-
-# Plot
-plot(2:10, sil_scores[2:10], type = "b", pch = 19,
-     xlab = "Anzahl Cluster (k)",
-     ylab = "Durchschnittliche Silhouettenbreite",
-     main = "Silhouettenanalyse für hierarchisches Clustering")
-
-
-
-```
-
-## Zweiter Chunk des Clusters
-```{r}
-# 1. peak1_position_Ctrl & peak1_height_Ctrl vorbereiten
-peak1_df <- data.frame(
-  Protein = rownames(Peak_Data),
-  peak1_position_Ctrl = Peak_Data$peak1_position_Ctrl,
-  peak1_height_Ctrl = Peak_Data$peak1_height_Ctrl
-)
-
-# 2. Merge mit den Clusterzuordnungen
-peak_data_with_clusters <- merge(
-  protein_clusters_sorted,
-  peak1_df,
-  by = "Protein"
-)
-
-# 3. Leere Liste zur Speicherung der gefilterten Cluster initialisieren
-filtered_clusters <- list()
-
-# 4. Schleife über alle Cluster
-for (cl in unique(peak_data_with_clusters$Cluster)) {
-  cluster_subset <- subset(peak_data_with_clusters, Cluster == cl)
-  
-  # Rundung auf ganze Zahlen zur Peakgruppierung
-  peak_pos <- round(cluster_subset$peak1_position_Ctrl)
-  
-  # Häufigste Peakposition
-  freq_table <- table(peak_pos)
-  if (length(freq_table) == 0) next  # überspringe leeren Cluster
-  top_peak <- as.numeric(names(freq_table)[which.max(freq_table)])
-  
-  # Erlaubte Positionen (±1)
-  allowed_range <- (top_peak - 1):(top_peak + 1)
-  
-  # Filter: Position innerhalb Range & Höhe mindestens 5
-  keep <- peak_pos %in% allowed_range & cluster_subset$peak1_height_Ctrl >= 5
-  filtered <- cluster_subset[keep, ]
-  
-  # Speichern
-  filtered_clusters[[paste0("Cluster_", cl)]] <- filtered
-}
-
-# 5. Alle gefilterten Cluster zusammenführen
-final_filtered_proteins <- do.call(rbind, filtered_clusters)
-
-# 6. Export als CSV
-write.csv(final_filtered_proteins, "RBP_FilteredByPeakPosition.csv", row.names = FALSE)
-
-# 7. Übersicht anzeigen
-table(final_filtered_proteins$Cluster)
-#
-
-## Plotten, nie streichen
-cluster3_proteins_final <- final_filtered_proteins[final_filtered_proteins$Cluster == 8, "Protein"]
-
-for (r in cluster3_proteins_final) {
-  plot_protein(r)
-}
-
-
-
-
-```
 
 ##looking at standart deviation and mean to get an idea 
 
