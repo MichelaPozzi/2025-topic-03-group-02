@@ -22,7 +22,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #General
 library(glue) # easy string construction with embedded variables and functions
 library(ggplot2) # various plots (elegant, versatile and easy to use)
-library(dplyr) # for conditional logic with case_when inside plot aesthetics <- @ Cihan und Sofia: nur bei mir... kann sein, dass ihr da noch andere funktionen von nutzt 
+library(dplyr) # for conditional logic with case_when inside plot aesthetics <- @Cihan und Sofia: nur bei mir... kann sein, dass ihr da noch andere funktionen von nutzt 
 
 # Chunk Additional Data 
 library(httr) # making API requests to UniProt (GET requests and response handling)
@@ -99,6 +99,8 @@ MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 ```{r}
 
 # -------------- PART 1: Plot for standart deviation for all 7159 proteins from MS_Table_Averages for each fraction for the CTRL condition ----------
+
+library(dplyr)
 
 # 1. Select Ctrl columns using grep
 ctrl_cols <- grep("^Ctrl_Fraction_", colnames(MS_Table_Averages), value = TRUE)
