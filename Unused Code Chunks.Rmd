@@ -1,0 +1,375 @@
+---
+title: "linas back_ups and shit"
+output: html_document
+date: "2025-06-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Gaussian Fitting (nice try, but not sufficient to complex curves) -Lina
+```{r}
+# Load package to use a sturdy fuction for gaussian fitting, that also works with critical starting values and sloping curves
+
+library(minpack.lm)
+
+# Build multi gaussian sumfuction up to 3 peaks (for later use)
+# note: A = amplitude (height of peak), µ = mean (peak position); sigma = standard deviation (width of peak), x = fraction
+# we can exclude the normalization factor, since our data is already normalized
+# for more than one peak we need to sum up the gaussian curves of multiple peaks
+# for the 2nd /3rd peak we are using default values, so we can also use the function for one peak
+
+multi_gauss <- function(x, A1, mu1, sigma1,
+                          A2 = 0, mu2 = 0, sigma2 = 1,
+                          A3 =0, mu3 = 0, sigma3 = 1) {
+    A1 * exp(-(x - mu1)^2 / (2 * sigma1^2)) + 
+    A2 * exp (-(x - mu2)^2 / (2* sigma2^2)) + 
+    A3 * exp(-(x - mu3)^2 / (2* sigma3^2))
+  }
+
+# build fuction to determin of number of peaks on raw data (for later use)
+# threshold t is the minimal peak hight we are acepting (3% of maximal intensity, the rest ist noise) <- has proven to be a good limit
+# note: diff() computes the slope between to points, sign() then gives the sign of the slope +1/0/-1, if slope changes from positive to negative diff() between +1 and -1 = -2
+
+t = max(y) * 0.03 
+find_peaks <- function(y, threshold = t) { 
+  peaks <- which(diff(sign(diff(y))) == -2) + 1 #(+1 shifts index back)
+  peaks[y[peaks]>= threshold] # [peaks] = peak intensität <- only those over thresohold
+}
+
+# create list for results
+
+fit_results <- list()
+
+# x-achsis for fited curves (fraction 1-25)
+
+x <- 1:25
+
+# fitting of every protein (Ctrl and RNAse) using for-loops
+# for loop that goes through every protein/row, extracts the Ctrl values and RNAse and saves them in seperate vectors
+
+for (p in seq_len(nrow(MS_Table_Norm))) {
+  row_vals <- as.numeric(MS_Table_Norm [p,])
+  ctrl_vals <- row_vals[seq(1, 50, by =2)]
+  rnase_vals <- row_vals[seq(2, 50, by=2)]
+  
+  #create emty list for results of this protein
+  
+  results_row <- list()
+  
+  # second for loop that first works with Ctrl, then RNAse values of protein
+  # with cond and vector c("Ctrl", "RNAse"), we are computing the for loop to run exactly two times, first under condition "Ctrl" then under condition "RNAse"
+  # in the first loop under "Ctrl" the ctrl_values are used, then in the second loop the rnase_vals
+  #
+  for (cond in c("Ctrl", "RNAse")) {
+    y <- if (cond == "Ctrl") ctrl_vals else rnase_vals 
+    
+    # finding peaks, if no peaks are detected --> fallback mechanism: find maximum intensity and asign fraction as peak position
+    
+    peaks <- find_peaks(y)
+    if(length(peaks) == 0) {
+      peaks <- which.max(y)
+    }
+    
+    #determine how many peaks have been found, but use 3 at a max
+    
+    n_peaks <- min(length(peaks),3)
+    
+    # extract intensity values for each peak as starting values for A (y[peaks]) and fraction of each peak as starting value for mu (x[peaks])
+    
+    y_peaks <- y[peaks]
+    x_peaks <- x[peaks]
+    
+    #define start values for up to three peaks using if clauses; sigma = 2 was an estimate that has proven to be a good starting value, since there are 25 fractions
+    
+    starts <- list(A1 = y_peaks[1], mu1 = x_peaks[1], sigma1 = 2)
+    if (n_peaks >= 2) {
+      starts <- c(starts, list(A2 = y_peaks[2], mu2 = x_peaks[2], sigma2 = 2)) }
+      else {
+        starts <- c(starts, list(A2 = 0, mu2 = 0, sigma2 = 2))}
+    if (n_peaks == 3) {
+      starts <- c(starts, list(A3 = y_peaks[3], mu3 = x_peaks[3], sigma3 = 2)) }
+      else {
+        starts <- c(starts, list(A3 = 0, mu3 = 0, sigma3 = 2))}
+
+  
+    # fitting with our multi gaussian fuction and try(), collect fit data in vector "fit"
+    # using if clauses to go through every possibility: 1, 2,  or 3 peaks, and build a model with 1 up to three gaussian curves
+    # we can't use multi_gauss with one peak, so we fit those with a normal gauss function (has proven to be necessary)
+    # nlsLM = function that fits our gaussian curves formular /function we are giving "y ~..." (this is a nonlinear fitting fuction)
+    # we need a lower and a upper limit, since in extreme cases, the estimation can be unrealistic (proven)
+    # we are using "maxiter = 500" , meaning that the function will try to fit until 500 iterations and not break of earlier/longer search time (proven to be needed, since the function would terminate many estimations, that could be successful)
+    # not all fits ar going to be successful:
+    # "warnOnly" guarantees that the code keeps running, even if the fitting of a protein is not successful (happens for a few proteins)
+    # function try() is another important protective measure, to ensure, that if "try" was not successful, the code keeps running, and there is only an error message for this protein (silent = TRUE <- error message not shown in console) 
+    
+    if (n_peaks == 1) {
+      fit <- try(nlsLM(y ~ A1 * exp(-((x - mu1)^2) / (2 * sigma1^2)),
+                       start = list(A1 = y_peaks[1], mu1 = x_peaks[1], sigma1 = 2),
+                                    lower = c(A1 = 0, mu1 = 1, sigma1 = 0.3),
+                                    upper = c(A1 = Inf, mu1 = 25, sigma1 = 5),
+                       control = list(maxiter = 500, warnOnly = TRUE)
+                       ), 
+                 silent = TRUE)
+      } 
+    else if (n_peaks == 2) {
+      fit <- try(nlsLM(y ~ multi_gauss(x, A1, mu1, sigma1, A2, mu2, sigma2),
+                       start = list(
+                         A1 = y_peaks[1], mu1 = x_peaks[1], sigma1 = 2,
+                         A2 = y_peaks[2], mu2 = x_peaks[2], sigma2 = 2),
+                       lower = c(A1 = 0, mu1 = 1, sigma1 = 0.3,
+                                 A2 = 0, mu2 = 1, sigma2 = 0.3),
+                       upper = c(A1 = Inf, mu1 = 25, sigma1 = 5,
+                                 A2 = Inf, mu2 = 25, sigma2 = 5),
+                       control = list(maxiter = 500, warnOnly = TRUE)
+                       ), 
+                 silent = TRUE)
+      } 
+    else {fit <- try(nlsLM(y ~ multi_gauss(x, A1, mu1, sigma1, A2, mu2, sigma2, A3, mu3, sigma3),
+                           start = list(
+                              A1 = y_peaks[1], mu1 = x_peaks[1], sigma1 = 2,
+                             A2 = y_peaks[2], mu2 = x_peaks[2], sigma2 = 2,
+                             A3 = y_peaks[3], mu3 = x_peaks[3], sigma3 = 2),
+                           lower = c(A1 = 0, mu1 = 1, sigma1 = 0.3,
+                                     A2 = 0, mu2 = 1, sigma2 = 0.3,
+                                     A3 = 0, mu3 = 1, sigma3 = 0.3),
+                           upper = c(A1 = Inf, mu1 = 25, sigma1 = 5,
+                                     A2 = Inf, mu2 = 25, sigma2 = 5,
+                                     A3 = Inf, mu3 = 25, sigma3 = 5),
+                           control = list(maxiter = 500, warnOnly = TRUE)
+                           ), 
+                     silent = TRUE)
+   }
+    
+    # collect results for this protein in results_row and add to fit_results list
+    # if clauses for when there is no "try-error" message (successful fit) for protein and when there is an error (n)
+    # "coef" extracts parameter values (A1, mu1, ../ coefficients)
+    # give parameters name in loist results_row and assign computed values 
+    # "paste0" takes a text frgment given and puts them together without spaces
+    # [[]] needed to access a specific value, not a list
+    # assign new variable "Fit_OK_ " to result list to show successful and not successfully fitted proteins
+    
+    if(!inherits(fit, "try-error")) {
+      coef_vals <- coef(fit)
+      for (i in names(coef_vals)) {
+        results_row[[paste0(i,"_", cond)]] <- coef_vals[i]
+      }
+      results_row[[paste0("Fit_OK_", cond)]] <- TRUE
+      results_row[[paste0("n_peaks_", cond)]] <- n_peaks
+    }
+    else {
+      results_row[[paste0("Fit_OK_", cond)]] <- FALSE
+      results_row[[paste0("n_peaks_", cond)]] <- 0
+    }
+  }
+  # close for loop, and save protein data in list fit_results
+  fit_results[[p]] <- results_row
+}
+
+# make data.frame out of list (quite complicated, cause not every protein has the same amount of values)
+# going through data for each protein x in fit_results
+# if there is no value for a specific field/parameter (A1, mu1,...) we are assigning "NA" (%in% = "is included in")
+
+rows_df <- lapply(fit_results, function(x){
+  fields <- c("A1", "mu1", "sigma1", "A2", "mu2", "sigma2", "A3", "mu3", "sigma3")
+  for (cond in c("Ctrl", "RNAse")) {
+    for (f in fields) {
+      key <- paste0(f, "_", cond)
+      if(!(key %in% names(x))) {
+        x[[key]] <- NA
+      }
+    }
+  }
+  as.data.frame(x)
+})
+
+#assemble all data in one dataframe
+# problem: rows_df is a list of one row dataframes (since we used lapply), we need to split up the list with do.call, and bind all dataframes with rbind
+MS_Data_Fitted <- do.call(rbind, rows_df)
+rownames(MS_Data_Fitted) <- rownames(MS_Table_Norm)
+
+Protein_IDs_fit_error <- rownames(subset(MS_Data_Fitted, Fit_OK_Ctrl == FALSE | Fit_OK_RNAse == FALSE))
+```
+
+### Plotting Protein with both normalised and gaussian fit curves - Lina
+```{r}
+plot_protein_inkl_gauss <- function(x) {
+  protein_of_interest <- x 
+  protein_norm_data <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
+  ctrl_values_norm_data <- as.numeric(protein_norm_data[seq(1, 49, by=2)])
+  rnase_values_norm_data <- as.numeric(protein_norm_data[seq(2, 50, by=2)])
+  fractions <- 1:25
+  
+  if (!(protein_of_interest %in% Protein_IDs_fit_error)) {
+    protein_gauss_data <- MS_Data_Fitted[rownames(MS_Data_Fitted) == protein_of_interest, , drop = FALSE]
+    x_vals <- seq(1, 25, by = 0.1)
+    
+    gauss_curve <- function(protein_gauss_data, condition, x) {
+       y <- rep(0, length(x))
+       n_peaks <- protein_gauss_data[[paste0("n_peaks_", condition)]]
+       for (i in 1:n_peaks) {
+         A <- protein_gauss_data[[paste0("A", i, "_", condition)]]
+         mu <- protein_gauss_data[[paste0("mu", i, "_", condition)]]
+         sigma <- protein_gauss_data[[paste0("sigma", i, "_", condition)]]
+         y <- y + A * exp(-((x - mu)^2) / (2 * sigma^2))
+         }
+       return(y)
+    }
+    y_ctrl <- gauss_curve(protein_gauss_data, "Ctrl", x_vals)
+    y_rnase <- gauss_curve(protein_gauss_data, "RNAse", x_vals)
+    } 
+  else {
+    x_vals <- NULL
+    y_ctrl <- y_rnase <- NULL
+    }
+
+  plot(fractions, ctrl_values, type="o", pch=16, lwd=1, lty = 1, col="green", ylim=range(c(ctrl_values, rnase_values), na.rm = TRUE),
+       xlab="Fraction", ylab="Intensity", main= protein_of_interest)
+  lines(fractions, rnase_values, type="o",pch =16, lwd=1, lty = 1,  col="red")
+  
+  if (!is.null(x_vals)) {
+    lines(x_vals, y_ctrl, col="green", lwd=2)
+    lines(x_vals, y_rnase, col="red", lwd=2)
+  }
+  
+  legend("topright", 
+         legend=c("Ctrl (raw)", "RNase (raw)", "Ctrl (fit)", "RNase (fit)"),
+         col=c("green", "red", "green", "red"), 
+         lty=c(2,2,1,1), pch=c(16,16,NA,NA), lwd=c(1,1,2,2))
+}
+
+plot_protein_inkl_gauss("ANKUB_HUMAN") #fill in protein that you wanna see
+```
+
+## First Idea fpr Shift Calculation - Using Means of Peak Positions (Heights not included!) - Lina 
+```{r}
+# Berechnung Average Peak Shift 
+  means_peak_position_Ctrl <- numeric(nrow(Peak_Data))
+  means_peak_position_RNAse <- numeric(nrow(Peak_Data))
+  shift_length <- numeric(nrow(Peak_Data))
+  
+for (p in seq_len(nrow(Peak_Data))) {
+  
+  positions_Ctrl <- as.numeric(sapply(1:6, function(i) Peak_Data[p, paste0("peak", i, "_position_Ctrl")]))
+  means_peak_position_Ctrl[p] <- mean(positions_Ctrl, na.rm = TRUE)
+  
+  positions_RNAse <- as.numeric(sapply(1:6, function(i) Peak_Data[p, paste0("peak", i, "_position_RNAse")]))
+  means_peak_position_RNAse[p] <- mean(positions_RNAse, na.rm = TRUE)
+  
+  shift_length[p] <- means_peak_position_Ctrl[p] - means_peak_position_RNAse[p]
+}
+
+  Shift_Data <- data.frame(
+  means_peak_position_Ctrl = means_peak_position_Ctrl,
+  means_peak_position_RNAse = means_peak_position_RNAse,
+  shift_length = shift_length,
+  row.names = rownames(Peak_Data))
+
+head(Shift_Data)
+```
+
+
+### FDR Correction of T-Text - Lina (decreased our hit-rate to much)
+```{r}
+# create empty columns for statistical test results 
+Shift_Data$shapiro_p <- NA
+Shift_Data$normal_distributed <- NA
+Shift_Data$p_value_ttest_filtered <- NA
+Shift_Data$significant_ttest_filtered <- NA
+
+# iterate over all proteins 
+for (protein in rownames(Shift_Data_for_t)) {
+  
+  # extract shift distances for each replicate
+  shift_values <- as.numeric(Shift_Data_for_t[protein, c("shift_distance_rep1", "shift_distance_rep2", "shift_distance_rep3")])
+  
+  # make sure that no NAs are present
+  if (all(!is.na(shift_values))) {
+    
+    # check if all values are identical (no variance)
+    if (length(unique(shift_values)) == 1) {
+      
+      # set normal distribution to TRUE if no variance is present
+      Shift_Data[protein, "shapiro_p"] <- NA
+      Shift_Data[protein, "normal_distributed"] <- TRUE
+      
+    } else {
+      
+      # perform Shapiro-Wilk test to check for normal distribution
+      shapiro_result <- shapiro.test(shift_values)
+      Shift_Data[protein, "shapiro_p"] <- shapiro_result$p.value
+      Shift_Data[protein, "normal_distributed"] <- shapiro_result$p.value >= 0.05
+    }
+    
+    # perfrom one-sided t-test if data is normal distributed
+    if (Shift_Data[protein, "normal_distributed"] == TRUE) {
+      
+      test_result <- t.test(shift_values, mu = 1, alternative = "greater")
+      
+      Shift_Data[protein, "p_value_ttest_filtered"] <- test_result$p.value
+      Shift_Data[protein, "significant_ttest_filtered"] <- ifelse(test_result$p.value < 0.05, TRUE, FALSE)
+      
+    } else {
+      # no t-test applied if data is not normal distributed
+      Shift_Data[protein, "p_value_ttest_filtered"] <- NA
+      Shift_Data[protein, "significant_ttest_filtered"] <- NA
+    }
+  }
+}
+
+# summary of proteins regarding normal distribution
+table(Shift_Data$normal_distributed, useNA = "ifany")
+
+# summary of proteins regarding significant of t-test
+table(Shift_Data$significant_ttest_filtered, useNA = "ifany")
+
+# Jetzt die Multiple Testing Correction (FDR)
+
+# Neue Spalten für FDR-Korrektur anlegen
+Shift_Data$p_value_ttest_fdr <- NA
+Shift_Data$significant_ttest_fdr <- NA
+
+# Nur p-Werte ohne NAs extrahieren
+pvals <- Shift_Data$p_value_ttest_filtered
+pvals_adj <- p.adjust(pvals, method = "BH")
+
+# Ergebnisse zurückschreiben
+Shift_Data$p_value_ttest_fdr <- pvals_adj
+Shift_Data$significant_ttest_fdr <- ifelse(pvals_adj < 0.05, TRUE, FALSE)
+
+# Übersicht FDR-Korrektur
+table(Shift_Data$significant_ttest_fdr, useNA = "ifany")
+
+head(Shift_Data)
+```
+
+#Linear Regression with CoM instead of max-peak-position
+```{r}
+# Correlation
+cor.test(Protein_Data_for_LR$CoM_RNase,
+         Protein_Data_for_LR$MolecularWeight_kDa,
+         method = "spearman", use = "complete.obs")
+
+# Linear Regression
+lm_model_CoM <- lm(MolecularWeight_kDa ~ CoM_RNase, data = Protein_Data_for_LR)
+summary(lm_model_CoM)
+
+#Scatter Plot
+ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = CoM_RNase, y = MolecularWeight_kDa)) +
+  geom_point(aes(color = "All analysed Proteins")) +
+  geom_point(data = CORUM_comlexes,aes(x = CoM_RNase, y = MolecularWeight_kDa, color = "Proteins in Complex (CORUM)"),alpha = 0.5)  +
+  geom_abline(intercept = coef(linear_reference)[1], 
+              slope = coef(linear_reference)[2], 
+              color = "darkred", size = 1) +
+  geom_point(data = reference_proteins, aes(x = x, y = y), color = "darkred", size = 3) +
+  geom_text(data = reference_proteins[c(1), ], aes(x = x, y = y, label = name),
+            vjust = -1,   hjust = 0.6, color = "darkred", size = 4, fontface = "bold") +
+  geom_text(data = reference_proteins[c(5), ], aes(x = x, y = y, label = name),
+            vjust = 0.3 ,   hjust = 1.2, color = "darkred", size = 4, fontface = "bold") +
+  geom_text(data = reference_proteins[c(2, 3, 4), ], aes(x = x, y = y, label = name),
+            vjust = 0.3,   hjust = -0.2, color = "darkred", size = 4, fontface = "bold") +
+  theme_classic() + theme(legend.position =  c(0.2, 0.85)) +
+  scale_color_manual(values = c("All analysed Proteins" = "gray75", "Proteins in Complex (CORUM)" = "lightcoral")) +
+  labs(x = "CoM_RNase", y = "Molecular Weight (kDa)",  color = "Protein Category", title = "Molecular Weight vs. CoM_RNase")
+```
