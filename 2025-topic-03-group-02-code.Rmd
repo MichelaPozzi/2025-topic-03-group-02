@@ -718,6 +718,10 @@ overlap_t_test <- intersect(t_test_positives, known_rbps)
 glue("Number identified as RBPs (T-Test positive): {length(overlap_t_test)}")
 glue("Hit rate: {round(length(overlap_t_test)/length(overlap_MS_Table)*100, 2)}%")
 
+# Determine number of identified RBS not listed as RBP in UniProt 
+novel_candidates <- t_test_positives[!t_test_positives %in% known_rbps]
+glue("Novel Candidates identified as RBP but not listed in UniProt: {(length(novel_candidates))}")
+
 # Positive Control Validation
 
   # RBM10, SMN1, and FMR1 are well-documented RBPs (literature-supported)
@@ -752,7 +756,7 @@ We explore cases where known RBPs were not classified as significant and examine
 - **Violation of normality assumption**: 10% failed the Shapiro-Wilk test for normal distribution (e.g., HTSF1, LSM8)  
 - **Marginal p-values**: ~8% exhibited consistent shifts but did not reach significance (e.g., RPP29_HUMAN with p = 0.08)
 
-Manual inspection of 40 non-identified RBPs suggests a false negative rate of approximately 19% within the testable subset.  
+Manual inspection of 40 non-identified RBPs suggests a false negative rate of approximately 12% within the testable subset (visual shift despite test results) 
 From a sample of 40 T-test-positive proteins, only 2 would have been visually rejected as RBPs, corresponding to a 5% false positive rate. 
 Furthermore, of all proteins with p-values > 0.045 (n = 18), only 4 were judged inconsistent with an RBP-like shift profile,  
 suggesting that most borderline cases still show convincing shift patterns.
@@ -812,20 +816,20 @@ This view helps assess the sensitivity and limitations of the shift-based identi
 highlight_data <- subset(Shift_Data,
                          rownames(Shift_Data) %in% overlap_t_test |
                          rownames(Shift_Data) %in% not_indentified |
-                         significant_ttest_filtered)
+                         rownames(Shift_Data) %in% novel_candidates)
 
 # Classify each protein into a color group
 highlight_data$color_group <- case_when(
   rownames(highlight_data) %in% overlap_t_test ~ "Overlaping with UniProt",
   rownames(highlight_data) %in% not_indentified ~ "UniProt Proteins not identified",
-  highlight_data$significant_ttest_filtered ~ "Significant Left Shift / RBPs"
+  rownames(highlight_data) %in% novel_candidates ~ "Novel Candidates"
 )
 
 # Control transparency depending on group
 highlight_data$alpha_group <- case_when(
   highlight_data$color_group == "Overlaping with UniProt" ~ "high",
   highlight_data$color_group == "UniProt Proteins not identified" ~ "high",
-  highlight_data$color_group == "Significant Left Shift / RBPs" ~ "low"
+  highlight_data$color_group == "Novel Candidates" ~ "low"
 )
 
 # Base plot: all proteins shown in background
@@ -839,9 +843,9 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
              aes(color = color_group, alpha = alpha_group)) +
     scale_color_manual(name = "Significance as RBP",values = c(
     "No significant Shift" = "gray80",
-    "Significant Left Shift / RBPs" = "gray40",
-    "Overlaping with UniProt" = "lightcoral",
-    "UniProt Proteins not identified" = "darkred"
+    "Novel Candidates" = "gray40",
+    "Overlaping with UniProt" = "darkred",
+    "UniProt Proteins not identified" = "lightcoral"
     ))+
     scale_alpha_manual(values = c("high" = 0.9, "low" = 0.3), guide = "none") +
   
