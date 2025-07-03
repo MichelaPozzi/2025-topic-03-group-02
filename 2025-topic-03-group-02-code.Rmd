@@ -672,19 +672,24 @@ GOAL: Plot t-test results by visualizing CoM positions in Ctrl vs. RNase
 # Create scatter plot of CoM values in Ctrl (x) vs. RNase (y) for all proteins
 # Color points based on t-test result (significant or not)
 ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
-  `significant_ttest_filtered` ~ "Significant Left Shift / RBPs",
-    TRUE ~ "No significant Shift"
+  `significant_ttest_filtered` ~ "Significant Left Shift (RBP)",
+    TRUE ~ "No significant Left Shift"
   ))) +
   geom_point(alpha = 0.6) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray20") +
-  scale_color_manual(name = "Significance as RBP",values = c(
-    "Significant Left Shift / RBPs" = "darkred",
-    "No significant Shift" = "gray70"
+  scale_color_manual(name = "RBP Identity",values = c(
+    "Significant Left Shift (RBP)" = "darkred",
+    "No significant Left Shift" = "gray70"
   ))+
-  labs(title = "Center of Mass in Ctrl and RNase: T-Test positives",
+  labs(title = "Center of Mass in Ctrl and RNase: T-Test Results",
        x = "CoM Ctrl",
        y = "CoM RNase") +
-  theme_minimal()
+  theme_minimal()+
+  theme(
+    legend.position = c(0.02, 0.98),
+    legend.justification = c("left", "top"),
+    legend.background = element_rect(fill = "white",color = "gray70")
+  )
 ```
 
 ## Validation of T-Test with UniProt Data - Lina
@@ -847,13 +852,18 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
     "Overlaping with UniProt" = "darkred",
     "UniProt Proteins not identified" = "lightcoral"
     ))+
-    scale_alpha_manual(values = c("high" = 0.9, "low" = 0.3), guide = "none") +
+    scale_alpha_manual(values = c("high" = 0.8, "low" = 0.2), guide = "none") +
   
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray20") +
   labs(title = "Validation of T-Test: Comparing with UniProt Data",
-       x = "CoM Ctrl",
-       y = "CoM RNase") +
-  theme_minimal()
+       x = "Center of Mass - Control",
+       y = "Center of Mass - RNase") +
+  theme_minimal()+
+  theme(
+    legend.position = c(0.02, 0.98),
+    legend.justification = c("left", "top"),
+    legend.background = element_rect(fill = "white",color = "gray70")
+    )
 ```
 
 ## T-Test for non-synchronised HELA Cells - includes previous coded parts of all group members, slightly adjusted - Lina
