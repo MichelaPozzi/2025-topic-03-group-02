@@ -1680,68 +1680,6 @@ ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_
 
 # TRY AND ERROR (BackUP)
 
-
-## Test for Normal Distribution (requirement for t-test) 
-- Description nessesary and all code descriptions in english
-```{r}
-# Pakete laden 
-library(dplyr)
-
-# Leere Liste für Zwischenspeicherung 
-results_list <- list()
-counter <- 1
-
-# Proteine durchlaufen
-for (protein in rownames(MS_Table)) {
-  
-  for (fraction_num in 1:25) {
-    
-    # Die korrekten Spaltennamen für Ctrl generieren
-    cols_ctrl <- paste0("Fraction", fraction_num, "_Ctrl_Rep", 1:3)
-    
-    # Prüfen ob alle Spalten existieren 
-    existing_cols <- cols_ctrl[cols_ctrl %in% colnames(MS_Table)]
-    
-    if(length(existing_cols) == 3){
-      
-      # Werte extrahieren
-      protein_values <- as.numeric(MS_Table[protein, existing_cols])
-      
-      # Nur testen, wenn es Streuung gibt
-      if (length(unique(protein_values)) > 1) {
-        shapiro_result <- shapiro.test(protein_values)
-        shapiro_W <- shapiro_result$statistic
-        shapiro_p <- shapiro_result$p.value
-      } else {
-        shapiro_W <- NA
-        shapiro_p <- NA
-      }
-      
-      # Zwischenspeichern
-      results_list[[counter]] <- data.frame(
-        Protein_ID = protein,
-        Fraction = fraction_num,
-        Shapiro_W = shapiro_W,
-        Shapiro_p = shapiro_p
-      )
-      counter <- counter + 1
-    }
-  }
-}
-
-# Am Ende alles zusammenfügen
-shapiro_results <- do.call(rbind, results_list)
-
-# Entscheidung über Normalverteilung ergänzen
-shapiro_results$Is_Normal_Distributed <- shapiro_results$Shapiro_p >= 0.05
-
-# Ergebnisse ausgeben
-head(shapiro_results)
-
-# Übersicht wie viele normalverteilt
-table(shapiro_results$Is_Normal_Distributed)
-```
-
  
 
 ```{r}
