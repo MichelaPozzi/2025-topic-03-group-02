@@ -682,8 +682,8 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
     "No significant Left Shift" = "gray70"
   ))+
   labs(title = "Center of Mass in Ctrl and RNase: T-Test Results",
-       x = "CoM Ctrl",
-       y = "CoM RNase") +
+       x = "Center of Mass - Control",
+       y = "Center of Mass - RNase") +
   theme_minimal()+
   theme(
     legend.position = c(0.02, 0.98),
@@ -848,11 +848,11 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
              aes(color = color_group, alpha = alpha_group)) +
     scale_color_manual(name = "Significance as RBP",values = c(
     "No significant Shift" = "gray80",
-    "Novel Candidates" = "gray40",
-    "Overlaping with UniProt" = "darkred",
-    "UniProt Proteins not identified" = "lightcoral"
+    "Novel Candidates" = "lightcoral",
+    "Overlaping with UniProt" = "darkblue",
+    "UniProt Proteins not identified" = "#009ACD"
     ))+
-    scale_alpha_manual(values = c("high" = 0.8, "low" = 0.2), guide = "none") +
+    scale_alpha_manual(values = c("high" = 0.7, "low" = 0.3), guide = "none") +
   
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray20") +
   labs(title = "Validation of T-Test: Comparing with UniProt Data",
@@ -864,6 +864,19 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
     legend.justification = c("left", "top"),
     legend.background = element_rect(fill = "white",color = "gray70")
     )
+```
+##Venn-Plot for Validation of T-Test
+
+```{r}
+library(eulerr)
+
+fit <- euler(c(
+  "T-Test Positives" = length(t_test_positives),
+  "Analysed UniProt RBPs" = length(overlap_MS_Table),
+  "T-Test Positives&Analysed UniProt RBPs" = length(intersect(t_test_positives, overlap_MS_Table))
+))
+
+plot(fit, fills = c("lightcoral", "#009ACD"), quantities = list(cex = 2), labels = FALSE)
 ```
 
 ## T-Test for non-synchronised HELA Cells - includes previous coded parts of all group members, slightly adjusted - Lina
