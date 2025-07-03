@@ -874,7 +874,13 @@ length(not_indentified)
 
 # Analyze potential causes
 sum(is.na(Shift_Data[not_indentified, "shapiro_p"])) /length(not_indentified) # Missing Shapiro results because of missing values
+shapiro_NA <- Shift_Data[is.na(Shift_Data$shapiro_p),]
+nrow(shapiro_NA)
+
 sum(Shift_Data[not_indentified, "normal_distributed"] == FALSE) / length(not_indentified) # Failed normality
+not_normally_dist <- Shift_Data[Shift_Data$normal_distributed == FALSE,]
+nrow(not_normally_dist)
+
 sum(Shift_Data[not_indentified, "p_value_ttest_filtered"] < 0.1, na.rm = TRUE) / length(not_indentified) # Would be detected at alpha = 0.1
 
 ```
