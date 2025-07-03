@@ -710,8 +710,11 @@ plot_protein_info <- function(x) {
 
   #Core plot function using crtl_values
   plot(fractions, ctrl_values, type="o", pch=20, lty=1, lwd = 1.5,  col="forestgreen", ylim= ylim_range,
-       xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest, axes = FALSE)
-       
+       xlab="Fraction", ylab="Normalized Intensity", main = NULL, axes = FALSE)
+  
+  # Titel
+  mtext(protein_of_interest, side = 3, line = 1, adj = 0, cex = 1, font = 2)
+  
   #Add line for rnase_values
   lines(fractions, rnase_values, type="o",pch =20, lty=1, lwd = 1.5,  col="firebrick3")
   
@@ -761,7 +764,7 @@ plot_protein_info <- function(x) {
   }
     
   # Add Info panel
-   par(mar = c(0, 0, 2, 0))
+  par(mar = c(0, 0, 2, 0))
   plot.new()
   
   shift_info <- subset_data_S[rownames(subset_data_S) == x, ]
