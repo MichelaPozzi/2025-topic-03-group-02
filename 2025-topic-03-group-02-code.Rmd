@@ -701,7 +701,7 @@ This includes:
 - Validation with literature-supported positive and negative control proteins
 ```{r}
 
-# Load annotated RNA-binding proteins (RBPs) from UniProt (human-specific)
+# Load annotated RNA-binding proteins (Keyword KW-0694) from UniProt (human-specific)
 uniprot_rbps <- read.delim("uniprotkb_KW_0694_AND_model_organism_96_2025_07_04.tsv", 
                            header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
