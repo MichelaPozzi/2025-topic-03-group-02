@@ -702,7 +702,7 @@ This includes:
 ```{r}
 
 # Load annotated RNA-binding proteins (RBPs) from UniProt (human-specific)
-uniprot_rbps <- read.delim("uniprotkb_RNA_binding_HUMAN_AND_model_o_2025_06_09.tsv", 
+uniprot_rbps <- read.delim("uniprotkb_KW_0694_AND_model_organism_96_2025_07_04.tsv", 
                            header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 # Extract UniProt entry names (used for matching)
@@ -768,21 +768,25 @@ suggesting that most borderline cases still show convincing shift patterns.
 
 ```{r}
 #Identify known UniProt RBPs not found by T-Test
-not_indentified <- known_rbps[! known_rbps %in% t_test_positives & known_rbps %in% rownames(MS_Table)]
+not_identified <- known_rbps[! known_rbps %in% t_test_positives & known_rbps %in% rownames(MS_Table)]
 
 # Total "missed" RBPs present in dataset
-length(not_indentified)
+glue("RNA-binding/-interacting proteins (UniProt) analyzed but not detected in our data: {length(not_indentified)}")
 
 # Analyze potential causes
-sum(is.na(Shift_Data[not_indentified, "shapiro_p"])) /length(not_indentified) # Missing Shapiro results because of missing values
-sum(Shift_Data[not_indentified, "normal_distributed"] == FALSE) / length(not_indentified) # Failed normality
-sum(Shift_Data[not_indentified, "p_value_ttest_filtered"] < 0.1, na.rm = TRUE) / length(not_indentified) # Would be detected at alpha = 0.1
+sum(is.na(Shift_Data[not_identified, "shapiro_p"])) /length(not_identified) # Missing Shapiro results because of missing values (approx.%)
+shapiro_failed <- Shift_Data[is.na(Shift_Data$shapiro_p),]
+glue("Number of Proteins, that where excluded, because shapiro results where NA: {nrow(shapiro_failed)}")
+
+sum(Shift_Data[not_identified, "normal_distributed"] == FALSE) / length(not_identified) # Failed normality (approx. %)
+normality_failed <- Shift_Data[Shift_Data$normal_distributed == FALSE,]
+glue("Number of Proteins, that where excluded, because repliactes wheren't normally ditributed: {nrow(normality_failed)}")
 
 ```
 
 ```{r}
 #Visual inspection of a sample of non-identified proteins
-sample_not_identified <- head( not_indentified, 40)
+sample_not_identified <- head( not_identified, 40)
 for (s in sample_not_identified ){
   plot_protein(s)
 }
@@ -820,13 +824,13 @@ This view helps assess the sensitivity and limitations of the shift-based identi
 # Create data subset of proteins for highlighting (was nessesary for coloring sequence)
 highlight_data <- subset(Shift_Data,
                          rownames(Shift_Data) %in% overlap_t_test |
-                         rownames(Shift_Data) %in% not_indentified |
+                         rownames(Shift_Data) %in% not_identified |
                          rownames(Shift_Data) %in% novel_candidates)
 
 # Classify each protein into a color group
 highlight_data$color_group <- case_when(
   rownames(highlight_data) %in% overlap_t_test ~ "Overlaping with UniProt",
-  rownames(highlight_data) %in% not_indentified ~ "UniProt Proteins not identified",
+  rownames(highlight_data) %in% not_identified ~ "UniProt Proteins not identified",
   rownames(highlight_data) %in% novel_candidates ~ "Novel Candidates"
 )
 
@@ -876,7 +880,7 @@ fit <- euler(c(
   "T-Test Positives&Analysed UniProt RBPs" = length(intersect(t_test_positives, overlap_MS_Table))
 ))
 
-plot(fit, fills = c("lightcoral", "#009ACD"), quantities = list(cex = 2), labels = FALSE)
+plot(fit, fills = c("lightcoral", "#82EEFD"), quantities = FALSE, labels = FALSE)
 ```
 
 ## T-Test for non-synchronised HELA Cells - includes previous coded parts of all group members, slightly adjusted - Lina
