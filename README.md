@@ -33,9 +33,14 @@ Finally, we explored whether our data could support other types of predictions b
 ## **Results**
 
 ### Who is RiboSix?
-RS6_Human or as we call it RiboSix is one of the RNA-dependent proteins we identified.
-What makes it so unique is that is only active during mitosis and works in a complexe 
-with other RNA-dependent proteins. How we found that out, is described in the following.
+Among the 7159 proteins, one protein stood out: RS6_HUMAN, 
+affectionately nicknamed RiboSix. What makes RiboSix special is not just its clear 
+RNA dependence, but its specificity. It is only active during mitosis, suggesting 
+a tightly regulated, phase-specific function. Further analysis revealed that RiboSix 
+clusters with other RNA-dependent proteins into a known complex, reinforcing its 
+functional relevance.
+In the following sections, we describe the methods and results that led us to uncover 
+RiboSix’s identity, its activity pattern, and its molecular connections.
 > ![RS6_Human Plot](Images/RBP_RS6_HUMAN.png)
 **Fig. 1: Intensity profile of RS6_HUMAN across 25 fractions.**
 Normalized intensities across control and RNase treatment reveal a clear leftward 
@@ -84,7 +89,7 @@ color-coded by statistical significance. The red dashed identity line marks equa
 shift behavior; proteins below the line show mitosis-specific leftward shifts, suggesting 
 RNA dependency unique to mitosis.
 
-### Finding Complexes of mitotic RBPs
+### Discovery of Complexes among mitosis-specific RBPs
 To explore whether these RBPs act in shared complexes, density-based clustering 
 (DBSCAN) was performed using shift and peak features. Known complexes such as the 
 40S ribosomal subunit and the Nop56p-associated pre-rRNA complex served as validation benchmarks.
@@ -105,6 +110,31 @@ elution profiles and known molecular weights showed no significant relationship.
 **R² of linear regression: 0.00017 (p = 0.25)**
 
 ## Repository 
+1. Main Analysis Code  
+The main part of the project, the code, can be found under "2025-topic-03-group-02-code_final.Rmd". A rendered (knitted) version is also available in the repository for easier viewing.
+
+2. Datasets  
+All used datasets are stored in the folder called "datasets". It includes: 
+   a) RDeeP_HeLa_Mitosis.csv --> the initial Proteomic dataset of HeLa cells synchronized in mitosis. 
+   b) RDeeP_HeLa_NS.csv --> the dataset from non-synchronized HeLa cells, used to filter out RBPs that are not mitosis-specific.
+   
+3. Reference Databases  
+All external reference data can be found in the folder "databanks". It includes: 
+   a) uniprotkb_KW_0694_AND_model_organism_96_2025_07_04.tsv --> A list of annotated RBPs from UniProt.
+   b) corum_humanComplexes --> Known human protein complexes used to validate clustering results. 
+   
+4. Unused Code    
+Throughout the project, various approaches and analyses were tested. While not all made it into the final pipeline, it should not go to waste.
+All of the parts that did not make it, can be found in the rmd.file called "Unused Code Chunks".
+   
+5. Poster  
+The poster to present all the findings is titled "2025-topic-03-group-02-poster.pptx" and will be presented on Thursday, July 10th, 2025.
+
+6. This README  
+Not be left out, this "README.md" file is also part of the Repository. 
+
+7. Images  
+As is the folder called "Images" containing all the images used in this README.
 
 
 
@@ -112,23 +142,14 @@ elution profiles and known molecular weights showed no significant relationship.
 
 
 
+# 📚 References
 
-
-# Was here before (delete when finished the Readme)
-> ⚠️ _Note: This README is a starting template. Please update it as your project evolves._
->
-For inspiration on writing a comprehensive and engaging README, check out the [Awesome README](https://github.com/matiassingers/awesome-readme?tab=readme-ov-file) repository.
-
-
-
-# 📚 Papers
-
-# Reviews
+### Reviews
 - [Sternburg et al., Global Approaches in Studying RNA-Binding Protein Interaction Networks, 2020, Trends in Biochemical Sciences.pdf](https://github.com/user-attachments/files/19981693/Sternburg.et.al.Global.Approaches.in.Studying.RNA-Binding.Protein.Interaction.Networks.2020.Trends.in.Biochemical.Sciences.pdf)
 - [Corley et al., How RNA-Binding Proteins Interact with RNA Molecules and Mechanisms, 2020, Molecular Cell.pdf](https://github.com/user-attachments/files/19981705/Corley.et.al.How.RNA-Binding.Proteins.Interact.with.RNA.Molecules.and.Mechanisms.2020.Molecular.Cell.pdf)
 - [Gebauer et al., RNA-binding proteins in human genetic disease, 2020, Nature Reviews Genetics.pdf](https://github.com/user-attachments/files/19981707/Gebauer.et.al.RNA-binding.proteins.in.human.genetic.disease.2020.Nature.Reviews.Genetics.pdf)
 
-# Experimental methods
+### Experimental methods
 - [Caudron-Herger et al., R-DeeP Proteome-wide and Quantitative Identification of RNA-Dependent Proteins by Density Gradient Ultracentrifugation, 2019, Molecular Cell.pdf](https://github.com/user-attachments/files/19981712/Caudron-Herger.et.al.R-DeeP.Proteome-wide.and.Quantitative.Identification.of.RNA-Dependent.Proteins.by.Density.Gradient.Ultracentrifugation.2019.Molecular.Cell.pdf)
 - [Caudron-Herger-Identification, quantification and bioinformatic analysis of RNA-dependent proteins by RNase treatment and density gradient ultracentrifugation using R-DeeP-2020-Nature Protocols_1.pdf](https://github.com/user-attachments/files/19981715/Caudron-Herger-Identification.quantification.and.bioinformatic.analysis.of.RNA-dependent.proteins.by.RNase.treatment.and.density.gradient.ultracentrifugation.using.R-DeeP-2020-Nature.Protocols_1.pdf)
 - [Rajagopal-Proteome-Wide Identification of RNA-Dependent Proteins in Lung Cancer Cells-2022-Cancers.pdf](https://github.com/user-attachments/files/19981723/Rajagopal-Proteome-Wide.Identification.of.RNA-Dependent.Proteins.in.Lung.Cancer.Cells-2022-Cancers.pdf)

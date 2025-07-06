@@ -46,7 +46,7 @@ library(data.table) # Fast loading of large tables (CORUM) and simple grouping /
 
 # Loading MS-Data
 ```{r}
-MS_Table <- read.table("RDeeP_HeLa_Mitosis.csv", header = TRUE, row.names = 1, sep = ";")
+MS_Table <- read.table("Datasets/RDeeP_HeLa_Mitosis.csv", header = TRUE, row.names = 1, sep = ";")
 ```
 
 # Data Cleanup
@@ -700,7 +700,7 @@ This includes:
 ```{r}
 
 # Load annotated RNA-binding proteins (Keyword KW-0694) from UniProt (human-specific)
-uniprot_rbps <- read.delim("uniprotkb_KW_0694_AND_model_organism_96_2025_07_04.tsv", 
+uniprot_rbps <- read.delim("Databanks/uniprotkb_KW_0694_AND_model_organism_96_2025_07_04.tsv", 
                            header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 # Extract UniProt entry names (used for matching)
@@ -882,7 +882,7 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
 **NOTE:** All variables related to the non-synchronized dataset are suffixed with `_NS`.
 ```{r}
 # Loading Data
-MS_Table_NS <- read.table("RDeeP_HeLa_NS.csv", header = TRUE, row.names = 1, sep = ";")
+MS_Table_NS <- read.table("Datasets/RDeeP_HeLa_NS.csv", header = TRUE, row.names = 1, sep = ";")
 
 # Dataframe
 treatment <- factor(rep(c("Ctrl", "RNase"), each = 3, length.out = 150))
@@ -1230,7 +1230,7 @@ protein_data <- data.frame(
 )
 
 # Load CORUM data (human protein complexes only)
-corum <- fread("corum_humanComplexes.txt", sep = "\t", header = TRUE) 
+corum <- fread("Databanks/corum_humanComplexes.txt", sep = "\t", header = TRUE) 
 
 # Expand CORUM entries /Unlist so each UniProt ID is listed individually with its complex name
 corum_expanded <- corum[, .(
@@ -1375,16 +1375,16 @@ hc_ward <- hclust(dist_matrix, method = "ward.D2")
 
 # Plot dendrogram
 par(mfrow = c(2, 2))
-#plot(hc_ward, main = "Ward's Method")  was sollte das 
+#plot(hc_ward, main = "Ward's Method")   
 
 
 plot(hc_ward, labels = FALSE, main = "Ward's Method (no labels)")
 
-# image for download: 
+# image for download, remove # if you want to plot: 
 
-png("C://Users//Sofi//Desktop//4 Semester//Bioinfo_project//Downloadsdendrogram_large.png", width = 1200, height = 800)
-plot(hc_ward, labels = FALSE, main = "Ward's Method (Large Output)")
-dev.off()
+# png("C://Users//Sofi//Desktop//4 Semester//Bioinfo_project//Downloadsdendrogram_large.png", width = 1200, height = 800)
+# plot(hc_ward, labels = FALSE, main = "Ward's Method (Large Output)")
+# dev.off()
 
 
 ```
