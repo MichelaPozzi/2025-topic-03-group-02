@@ -784,7 +784,6 @@ glue("Approx. Percentage of not identified RBPs that where lost in normality tes
 
 ```{r}
 #Visual inspection of a sample of non-identified proteins
-par(mfrow = c(2, 5))
 sample_not_identified <- head( not_identified, 10)
 for (s in sample_not_identified ){
   plot_protein(s)
@@ -794,7 +793,6 @@ glue("Manual inspection of 40 non-identified RBPs suggests a false negative rate
 
 ```{r}
 #Visual inspection of a sample of T-Test positive proteins
-par(mfrow = c(2, 5))
 sample_t_test_positives <-head(t_test_positives,10)
 for (s in sample_t_test_positives){
   plot_protein(s)
@@ -805,7 +803,6 @@ glue("From a sample of 40 T-test-positive proteins, only 2 would have been visua
 
 ```{r}
 # Visual inspection of proteins with marginally significant p-values (above 0.045)
-par(mfrow = c(4, 5))
 t_test_positives_critical_p_value <- rownames(
   Shift_Data[
     Shift_Data$significant_ttest_filtered == TRUE &
@@ -1119,7 +1116,6 @@ RBPs_Hela <- intersect(RBPs_Hela, overlap_analysis)
 glue("Number RBPs found only in non-synchonized cells: {length(RBPs_Hela)}")
 
 # Display a sample of plots (mitosis and non-synchronised) of RBPs uniquely active in mitosis
-par(mfrow = c(4, 5))
 sample_RBPs_Mitosis <- head(RBPs_Mitosis,10)
 for (r in sample_RBPs_Mitosis){
   plot_protein(r)
