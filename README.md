@@ -3,8 +3,32 @@
 
 
 ## **Introduction** 
+Welcome to our quest to follow a protein on its journey, where it searches for its friends and family, while it adapts and learns new things about itself.
+### Introduction to RNA Binding Proteins – Spoiler alert!:
+RNA-binding proteins (RBPs) are essential regulators of gene expression, controlling everything from splicing and localization to translation and degradation of RNA. RBPs are dynamic players whose behavior can change dramatically depending on the cell’s current “season.”
+During the cell cycle, and especially in the high-stakes phase of mitosis, RBPs undergo striking redistributions and functional shifts. Some vanish into the background, while others emerge as key orchestrators of the mitotic program, helping the cell divide its internal world with precision.
+By exploring how RBP activity and localization change during mitosis, we uncover clues to how cells coordinate this tightly regulated process — and perhaps, how dysregulation leads to disease. This project dives deep into the shifting world of RBPs in mitosis. 
+### Introduction to Our Data
+All proteins originate from mass spectrometry data of HeLa cells in mitosis.
 
+    Total number of proteins:7159
 
+    Number of fractions: 25
+
+    Number of replicates per protein: 3
+### Overview of Goals
+
+**RNA-dependent Proteins**
+The first goal of our pipeline was to develop a method to determine, as reliably as possible, whether a protein is an RBP or not. We approached this by comparing the two experimental conditions under which the proteins were analyzed: Ctrl and RNase. By characterizing the change—or shift—in protein distribution, we identified RNA-dependent proteins.
+
+**RNA-dependent Proteins Active in Mitosis**
+Our second goal was to take advantage of our specific dataset from synchronized HeLa cells in mitosis. Using the results from the first step, we applied the same pipeline to the synchronized dataset. We then overlaid both results and extracted all proteins that, according to our logic, should only be active in mitosis—i.e., proteins that exhibited RBP-like behavior exclusively during mitosis.
+
+**Complex Finding**
+As our third goal, we aimed to deepen our analysis by identifying protein clusters and determining whether they could represent potential RBP-dependent complexes active in mitosis. To help interpret these findings, we compared our predicted complexes with known complexes from the CORUM database.
+
+**Molecular Weight Prediction**
+Finally, we explored whether our data could support other types of predictions beyond RBPs. Specifically, we investigated whether the sucrose gradient (i.e., the positions of the fractions) correlates with molecular weight.
 
 ## **Results**
 
