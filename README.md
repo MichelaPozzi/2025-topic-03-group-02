@@ -3,19 +3,25 @@
 
 Welcome to the **Proteome-wide Screen for RNA-dependent Proteins** project! This repository will serve as the central place for exploring, analyzing, and visualizing data related to RNA-protein interactions across the proteome.
 
-# Introduction 
+# **Introduction** 
 
 
 
-# Results
+# **Results**
 
-## Who is RiboSix?
+### Who is RiboSix?
 RS6_Human or as we call it RiboSix is one of the RNA-dependent proteins we identified.
 What makes it so unique is that is only active during mitosis and works in a complexe 
-with other RNA-dependent proteins. How we found that out, is described in the following. 
+with other RNA-dependent proteins. How we found that out, is described in the following.
+> ![RS6_Human Plot](Images/RBP_RS6_HUMAN.png)
+**Fig. 1: Intensity profile of RS6_HUMAN across 25 fractions.**
+Normalized intensities across control and RNase treatment reveal a clear leftward 
+shift in elution after RNase treatment, indicative of RNA-dependent behavior. 
+Additional panel summarizes shift distance, complex membership (CORUM), and molecular weight.
 
 
-## Identification of RNA-dependent proteins 
+
+### Identification of RNA-dependent proteins 
 To detect RNA-dependent behavior, proteins were classified as RNA-binding candidates 
 if their center of mass (CoM) shifted more than one fraction toward the top of 
 the gradient upon RNase treatment. This shift indicates loss of RNA interactions 
@@ -30,7 +36,7 @@ annotations to evaluate how many of them were already known and how many may rep
 **Novel RNA-binding candidates: 564**
 
 > ![Validation t-Test via UniProt](Images/Validation_TTest_UniProt_2.png)
-**Fig. 1. Validation of RNA-dependence by T-Test using UniProt annotation:**
+**Fig. 2: Validation of RNA-dependence by T-Test using UniProt annotation.**
 Scatterplot comparing Center of Mass (CoM) values between control and RNase-treated 
 samples for all proteins. Each point represents one protein, color-coded by RNA-binding 
 significance: proteins overlapping with UniProt RBPs (dark blue), novel RNA-dependent candidates 
@@ -39,7 +45,7 @@ proteins (grey). The dashed diagonal line marks equal CoM values, with leftward 
 RNA-dependent shift behavior. This visualization highlights both confirmed and potentially novel RBPs.
 
 
-## Identification of mitosis specific proteins 
+### Identification of mitosis specific proteins 
 To assess whether RNA-binding activity was specific to the mitotic phase, the same 
 shift-based analysis was applied to non-synchronized HeLa cells. Shift profiles 
 were then compared between conditions. Proteins that showed a significant shift 
@@ -48,14 +54,14 @@ RNA-dependent proteins.
 
 **RBPs uniquely active in mitosis: 237**
 > ![Comparison of Shift Distances between mitosis and non-synchronized condition](Images/Shift_Distance_Mitosis_vs_NS_2.png)
-**Fig. 2. Comparative Shift Scatterplot (Mitosis vs. Non-Synchronized):**
+**Fig. 3: Comparative Shift Scatterplot (Mitosis vs. Non-Synchronized).**
 Scatterplot displays shift distances derived from center of mass (CoM) 
 values for all proteins under both conditions. Each point represents one protein, 
 color-coded by statistical significance. The red dashed identity line marks equal 
 shift behavior; proteins below the line show mitosis-specific leftward shifts, suggesting 
 RNA dependency unique to mitosis.
 
-## Finding Complexes of mitotic RBPs
+### Finding Complexes of mitotic RBPs
 To explore whether these RBPs act in shared complexes, density-based clustering 
 (DBSCAN) was performed using shift and peak features. Known complexes such as the 
 40S ribosomal subunit and the Nop56p-associated pre-rRNA complex served as validation benchmarks.
@@ -66,7 +72,7 @@ To explore whether these RBPs act in shared complexes, density-based clustering
 
 **Proteins in relevant cluster (Cluster 4): 13**
 
-## Predicting Molecular Weight
+### Predicting Molecular Weight
 It was hypothesized that shift behavior might correlate with molecular weight due 
 to sedimentation properties. However, linear regression between RNase-shift-based 
 elution profiles and known molecular weights showed no significant relationship.
