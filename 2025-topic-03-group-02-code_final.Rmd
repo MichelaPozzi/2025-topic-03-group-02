@@ -1608,6 +1608,7 @@ Investigate whether a linear model predicting molecular weight based on RNase va
 
 -->  Conclusion: This approach does NOT yield a valid predictive model!
 Possible reasons include:
+
 - Elution position depends not only on mass, but also shape and density of the protein.
 - Many proteins remain in RNA-independent protein complexes even after RNase treatment.(However, even after removing CORUM complex proteins, no strong correlation appears)
 - Maximal Peak Position is not the correct parameter to predict molecular weight. (However, also parameter CoM showed no correlation)
