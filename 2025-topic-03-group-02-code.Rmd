@@ -11,28 +11,36 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Project Overview
 ### Goal: 
+- *Identification of RNA-Dependent Proteins*
+Build a robust analysis pipeline to identify proteins with altered distribution profiles after RNase treatment, using mass spectrometry data from 7,159 proteins isolated from synchronized mitotic HeLa cells.
 
-- Briefly describe the purpose of this analysis
+- *Identification of RBPs specifically active during mitosis*
+Compare RNA-dependent protein profiles from synchronized mitotic cells with those from unsynchronized cells to find RBPs that are exclusively active during mitosis.
+
+- *Screening for RBP complexes active in Mitosis*
+Investigate whether mitosis-specific RBPs co-segregate in control gradients aiming to detect both known and potentially novel RNA-dependent protein complexes (using different clustering methods).
+
+- *Testing R-DeeP for further use in molecular weight predictions*
+Test if a protein's position in the sucrose gradient correlates with its molecular weight, using linear regression to evaluate predictive potential.
 
 ## Libraries 
-
-- Briefly explain for which functions/steps are these needed
-
 ```{r, message=FALSE, warning=FALSE}
-#General
-library(tidyverse)   # collection of tidy data tools (ggplot2, dplyr, tidyr, etc.) for wrangling, plotting, and transforming datasets --> specifically used libraries explained and loaded as well for an overview 
-library(tidyr)       #  provides functions for transforming and reshaping data structures — used for pivot_wider to convert long-format correlation data into a wide matrix for heatmap input
-library(pheatmap)    # generates customizable heatmaps; used to visualize the Spearman correlation matrix between all replicate-fraction combinations
-library(glue) # easy string construction with embedded variables and functions
-library(ggplot2) # various plots (elegant, versatile and easy to use)
-library(dplyr) # for conditional logic with case_when inside plot aesthetics, also for filtering and selecting relevant data <- @Sofia: nur bei mir... kann sein, dass ihr da noch andere funktionen von nutzt , Cihan hat nachgeschaut und ergänzt :=)
-library(dbscan) # neccesary for scaling in order to later run density based clustering
+# General
+library(tidyverse) # Collection of tidy data tools (ggplot2, dplyr, tidyr, etc.) for wrangling, plotting, and transforming datasets
+library(tidyr)# Provides functions for transforming and reshaping data structures — used for pivot_wider to convert long-format correlation data into a wide matrix for heatmap input
+library(pheatmap)# Generates customizable heatmaps; used to visualize the Spearman correlation matrix between all replicate-fraction combinations
+library(glue) # Easy string construction with embedded variables and functions
+library(ggplot2) # Various plots (elegant, versatile and easy to use)
+library(dplyr) # For conditional logic with case_when inside plot aesthetics, also for filtering and selecting relevant data 
+
+# Clustering
+library(dbscan) # Necessary for scaling in order to later run density based clustering
 
 # Chunk Additional Data 
-library(httr) # making API requests to UniProt (GET requests and response handling)
-library(jsonlite) #parsing JSON responses from the UniProt API 
-library(pbapply) # applying functions with a progress bar
-library(data.table) # fast loading of large tables (CORUM) and simple grouping / restructuring of data using [i, j, by] syntax
+library(httr) # Making API requests to UniProt (GET requests and response handling)
+library(jsonlite) # Parsing JSON responses from the UniProt API 
+library(pbapply) # Applying functions with a progress bar
+library(data.table) # Fast loading of large tables (CORUM) and simple grouping / restructuring of data using [i, j, by] syntax
 
 ```
 
@@ -42,21 +50,21 @@ MS_Table <- read.table("RDeeP_HeLa_Mitosis.csv", header = TRUE, row.names = 1, s
 ```
 
 # Data Cleanup
-## Despription of the Data - Lina
+## Description of the Data - Lina
 ### Goal: 
 - Get a feeling for the dataset and decide on necessary clean-up steps
 ```{r}
 glue("Number of proteins analysed /rows : {nrow(MS_Table)}")
 glue("Number of columns: {ncol(MS_Table)} (25 fractions with each 3 replicates for Ctrl and RNase treatment)")
-glue("Classifikation of variables: {unique(sapply(MS_Table, class))}")
+glue("Classification of variables: {unique(sapply(MS_Table, class))}")
 glue("Any missing values: {any(is.na(MS_Table))}")
-glue("Overall minimum intenstity: {min(MS_Table)}")
-glue("Overall maximum intenstity: {max(MS_Table)}")
+glue("Overall minimum intensity: {min(MS_Table)}")
+glue("Overall maximum intensity: {max(MS_Table)}")
 ```
 
-#Normalisation - Cihan, Sofia,Lina
+#Normalization - Cihan, Sofia,Lina
 ### Goal: 
-- Generate a new dataframe with replicate-averaged intensity values,scaled so that each protein's total intensity sums to 100 across all fractions (fopr Ctrl and RNase)
+- Generate a new dataframe with replicate-averaged intensity values,scaled so that each protein's total intensity sums to 100 across all fractions (for Ctrl and RNase)
 - Build a function to plot protein profiles using the normalized data  
 - Confirm experimental reproducibility by comparing intensity profiles across replicates
 
@@ -87,8 +95,7 @@ for (f in levels(fraction)) {
 MS_Table_Averages <- as.data.frame(average.list) 
 rownames(MS_Table_Averages) <- rownames(MS_Table) 
 
-# Reorder columns: alphabetic order of 'levels()' breaks fraction sequence,
-# so construct correct order manually (Ctrl_1 to Ctrl_25, then RNase_1 to RNase_25)
+# Reorder columns: alphabetic order of 'levels()' disrupts correct fraction sequence,so construct correct order manually (Ctrl_1 to Ctrl_25, then RNase_1 to RNase_25)
 fractions <- paste0("Fraction_", 1:25)
 ordered_names <- as.vector(rbind(
   paste0("Ctrl_", fractions),
@@ -98,11 +105,10 @@ ordered_names <- as.vector(rbind(
 MS_Table_Averages <- MS_Table_Averages[, ordered_names]
 ```
 
-
 ## Plot showing variance of our data - Sofia
 ```{r}
 library(dplyr)
-# -------------- PART 1: Plot for standart deviation for all 7159 proteins from MS_Table_Averages for each fraction for the CTRL condition ----------
+# -------------- PART 1: Plot for standard deviation for all 7159 proteins from MS_Table_Averages for each fraction for the CTRL condition ----------
 
 
 
@@ -154,8 +160,8 @@ ggplot(summary_df, aes(x = Protein, y = Mean)) +
 
 ## Normalization to 100 - Cihan
 ### Goal: 
-- Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNAse conditions each sums to 100
-- for less variance between the fractions --> This allows comparison of distribution shapes independent of absolute abundance
+- Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNase conditions each sums to 100
+- For less variance between the fractions --> This allows comparison of distribution independent of absolute abundance
 ```{r}
 # Split up Control and RNAse values 
 ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages))  
@@ -180,7 +186,7 @@ rowSums(MS_Table_Norm["1433B_HUMAN", ])
 ```{r}
 plot_protein <- function(x) {
   
-  #extract data, define all variables and range of x- and y-achsis
+  # Extract data, define all variables and range of x- and y-axis
   protein_of_interest <- x 
   protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
   ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
@@ -189,14 +195,14 @@ plot_protein <- function(x) {
   max_val <- max(ctrl_values, rnase_values, na.rm = TRUE)
   ylim_range <- c(0, max_val * 1.2)
 
-  #core plot function using crtl_values
+  # Core plot function using crtl_values
   plot(fractions, ctrl_values, type="o", pch=20, lty=1, lwd = 1.5,  col="forestgreen", ylim= ylim_range,
        xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest, axes = FALSE)
        
-  #add line for rnase_values
+  # Add line for rnase_values
   lines(fractions, rnase_values, type="o",pch =20, lty=1, lwd = 1.5,  col="firebrick3")
   
-  #color area under the curve
+  # Color area under the curve
   polygon(c(fractions, rev(fractions)), 
           c(ctrl_values, rep(0, length(ctrl_values))), 
           col=adjustcolor("forestgreen", alpha.f=0.1), border=NA)
@@ -205,17 +211,17 @@ plot_protein <- function(x) {
           c(rnase_values, rep(0, length(rnase_values))), 
           col=adjustcolor("firebrick3", alpha.f=0.1), border=NA)
   
-  #add x- and y-achsis with correct lables
+  # Add x- and y-axis with correct labels
   axis(1, at = 1:25, labels = 1:25, cex.axis = 0.7)
   axis(2, cex.axis = 0.7, las =2)
   grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted", lwd = 0.8)
 
-  #add legend
+  # Add legend
   legend("topright", legend=c("Ctrl", "RNase"), col=c("forestgreen", "firebrick3"), 
          lty=1, lwd = 1.5,  pch=20, bg = "white", bty = "o", box.col = NA, horiz = TRUE)
 }
 
-#example
+# Example
 plot_protein("RL27_HUMAN") 
 ```
 
@@ -224,7 +230,7 @@ plot_protein("RL27_HUMAN")
 ### Goal: 
 - Assess reproducibility of MS-based protein measurements for both treatments 
 - Visualize how consistent protein ranking patterns are across all replicates and fractions
-- We expect a diagonal showing our r-value = 1, while the other combinations should show lower correlation
+- We expect a diagonal showing our r = 1, while the other combinations should show lower correlation
 ```{r}
 # Create empty dataframe for correlation 
 full_correlation_results <- data.frame(
@@ -237,7 +243,7 @@ full_correlation_results <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Iterate over both Ctrl and RNase Treatment 
+# Iterate over both Ctrl and RNase treatments 
 for (treatment in c("Ctrl", "RNase")) {
   
   # Create all possible rep-fraction combinations
@@ -257,10 +263,10 @@ for (treatment in c("Ctrl", "RNase")) {
       col1 <- which(replicate == paste0(treatment, "_Rep", rep1) & fraction == paste0("Fraction_", frac1))
       col2 <- which(replicate == paste0(treatment, "_Rep", rep2) & fraction == paste0("Fraction_", frac2))
       
-      # Calculate Spearmen correlation
+      # Calculate Spearman correlation
       cor_value <- cor(MS_Table[, col1], MS_Table[, col2], method = "spearman", use = "complete.obs")
       
-      # Safe results in dataframe
+      # Save results in dataframe
       full_correlation_results <- rbind(full_correlation_results, data.frame(
         Treatment = treatment,
         Replicate_1 = paste0("Rep", rep1),
@@ -278,26 +284,26 @@ head(full_correlation_results)
 
 
 
-# create column for each axis 
+# Create column for each axis 
 full_correlation_results <- full_correlation_results %>%
    mutate(Row = paste0(Replicate_1, "_F", gsub("Fraction_", "", Fraction_1)),
          Col = paste0(Replicate_2, "_F", gsub("Fraction_", "", Fraction_2)))
 
-# we select treament RNase for our first heatmap
+# We select treatment RNase for our first heatmap
 treatment_to_plot_RNase <- "RNase"
 
-# filter table for selected treatment: RNase
+# Filter table for selected treatment: RNase
 heatmap_data_RNase <- full_correlation_results %>%
   filter(Treatment == treatment_to_plot_RNase) %>%
   select(Row, Col, Spearman_r)
 
-# convert into matrix 
+# Convert into matrix 
 heatmap_matrix_RNase <- heatmap_data_RNase %>%
   pivot_wider(names_from = Col, values_from = Spearman_r, values_fill = NA) %>%
   column_to_rownames("Row") %>%
   as.matrix()
 
-# create heatmap for RNase treatment
+# Create heatmap for RNase treatment
 print(pheatmap(heatmap_matrix_RNase,
          main = paste("Spearman Correlation Heatmap -", treatment_to_plot_RNase),
          cluster_rows = FALSE, 
@@ -307,21 +313,21 @@ print(pheatmap(heatmap_matrix_RNase,
          fontsize_row = 4,
          fontsize_col = 4))
 
-# we select treament Ctrl for our second heatmap
+# We select treatment Ctrl for our second heatmap
 treatment_to_plot_Ctrl <- "Ctrl"
 
-# filter table for selected treatment: Ctrl
+# Filter table for selected treatment: Ctrl
 heatmap_data_Ctrl <- full_correlation_results %>%
   filter(Treatment == treatment_to_plot_Ctrl) %>%
   select(Row, Col, Spearman_r)
 
-# convert into matrix 
+# Convert into matrix 
 heatmap_matrix_Ctrl <- heatmap_data_Ctrl %>%
   pivot_wider(names_from = Col, values_from = Spearman_r, values_fill = NA) %>%
   column_to_rownames("Row") %>%
   as.matrix()
 
-# create heatmap for Ctrl treatment
+# Create heatmap for Ctrl treatment
 print(pheatmap(heatmap_matrix_Ctrl,
          main = paste("Spearman Correlation Heatmap -", treatment_to_plot_Ctrl),
          cluster_rows = FALSE, 
@@ -335,25 +341,24 @@ print(pheatmap(heatmap_matrix_Ctrl,
 
 # Data Analysis
 ### Goal:
-- Finding RBPs in our dataset 
-- Filtering them for only active in mitosis
+- Identification of RNA-Dependent Proteins
+- Identification of RBPs specifically active during mitosis
 
-## Peak Detection in Normalized Ctrl/RNase Profiles  - Lina
+## Peak Detection in normalized Ctrl and RNase profiles  - Lina
 ### Goal:
 - Identify peaks in normalized intensity profiles (Ctrl and RNase)
 - Extract number of peaks, their positions and heights
-! NOTE: Peak data is not used for RBP identification.  
-This step is purely descriptive. However, Peak_Data is later used for clustering and linear regression analysis.
 
+**NOTE:** Peak data is not used for RBP identification. This step is purely descriptive. However, Peak_Data is later used for clustering and linear regression analysis.
 ```{r}
-# Define x-axis
+# Define x axis
 x <- 1:25
 
 # Build function for peak detection using slope between fractions
 # Detects internal peaks above a given threshold (default: 3% of max intensity)
 # Note: Cannot detect peaks at positions 1 and 25 (manually handled below)
 find_peaks <- function(y, threshold = max(y) * 0.03) { 
-  peaks <- which(diff(sign(diff(y))) == -2) + 1 #(+1 shifts index back)
+  peaks <- which(diff(sign(diff(y))) == -2) + 1 # (+1 shifts index forward)
   peaks[y[peaks]>= threshold] 
 }
 
@@ -376,7 +381,7 @@ for (p in seq_len(nrow(MS_Table_Norm))) {
     
     peaks <- find_peaks(y)
     
-    # Manually check for peak at position 1 and 25
+    # Manually check for peaks at positions 1 and 25
     if (length(peaks) == 0) {
       peaks <- numeric(0)
       }
@@ -386,7 +391,7 @@ for (p in seq_len(nrow(MS_Table_Norm))) {
     if (!is.na(y[25]) && !is.na(y[24]) && y[25] > y[24] && y[25] >= threshold) {
       peaks <- c(peaks, 25)
     }
-    # Fallback: If no peaks detected at all, use global maximum
+    # Fallback: If no peaks are detected at all, use global maximum
     if(length(peaks) == 0) {
       peaks <- which.max(y)
       }
@@ -448,21 +453,15 @@ Peak_Data <- Peak_Data[, order]
 ```
 
 
-# Shift Characteristics - Lina, Sofia, Chian
-To quantify positional shifts in protein profiles between Ctrl and RNase conditions, we calculate the Center of Mass (CoM) for each protein.
-The CoM is a weighted average of all fraction positions, where weights are the normalized intensity values.
+# Shift Characteristics - Lina, Sofia, Cihan
 
-CoM is defined as:
-   Σ(intensity × fraction) / Σ(intensity)
+Goal:
+- Quantify and summarize positional shifts in protein distribution between Ctrl and RNase conditions using center of mass (CoM) calculation as a weighted average 
+- Further shift characterization with:
+  Shift distance: difference between CoM_Ctrl and CoM_RNase
+  Shift direction: +1 = left-shift, –1 = right-shift, 0 = no shift
 
-Since we did not apply Gaussian fitting, a direct peak-to-peak comparison between Ctrl and RNase was difficult and unreliable. 
-Using the CoM allows us to include both position and intensity information and proofed to be a robust, single-value summary of the overall protein distribution.
-
-Based on this, we calculate:
- - Shift distance: difference between CoM_Ctrl and CoM_RNase
- - Shift direction: +1 = left-shift, –1 = right-shift, 0 = no shift
-
-! NOTE:CoM-based shift calculations were later repeated per replicate and used for statistical testing (t-test) to identify significantly shifting RBPs.
+**NOTE:** CoM-based shift calculations is later repeated per replicate and used for statistical testing (t-test) to identify significantly shifting RBPs.
 ```{r}
 # Initialize result vectors (one value per protein)
 CoM_Ctrl <- numeric(nrow(MS_Table_Norm))
@@ -496,11 +495,11 @@ Shift_Data <- data.frame(
   row.names = rownames(MS_Table_Norm))
 ```
 
-##T-Test
-### First Normalization of whole MS_Table to 100 - Cihan
-#### Goal: 
-- To normalize the values of each replicate within each treatment (Ctrl and RNase) so that the total across all 25 fractions equals 100 per replicate.
-- This ensures comparability between replicates by removing global intensity differences, and prepares the data for center of mass (CoM) calculation and statistical testing (t-test) later on.
+## T-Test
+### 1. Normalization of whole MS_Table to 100 - Cihan
+### Goal: 
+- Normalize the values of each replicate within each treatment (Ctrl and RNase), so that the total across all 25 fractions equals 100 per replicate.
+- This ensures comparability between replicates by removing global intensity differences and prepares the data for center of mass (CoM) calculation and statistical testing (t-test) later on
 ```{r}
 # Split up all Ctrl and RNAse values and their individual Reps 
 ctrl_cols_t1 <- grep("_Ctrl_Rep1", colnames(MS_Table))
@@ -539,16 +538,15 @@ for (fraction in fractions) {
 }
 
 Norm_Data_for_t <- Norm_Data_for_t[, ordered_names]
-head(Norm_Data_for_t)
+
 # Verify the calculation with one example; the row sum should be ~600 (3*Ctrl 100% + 3*RNAse 100%)
 rowSums(Norm_Data_for_t["1433B_HUMAN", ]) 
 ```
 
-### Caluclation of Center of mass (CoM) - Sofia 
+### 2. Calculation of Center of mass (CoM) - Sofia 
 ### Goal:
-- All dimensions of our data, such as multiple peak positions and heights, are simplified for later t-tests (only one value) by using Center of Mass (CoM) values. The CoM is calculated for all replicates and treatments and data comes from Norm_Data_for_t (normalised Data). 
+- Calculating center of mass (CoM) for all replicates and treatments 
 
--It represents the weighted average position of a signal: the sum of all fraction numbers multiplied by their intensity values, divided by the total intensity. (This way, if a peak is "split" into two in one experiment but not in another, it should not affect the result significantly, as both would have similar CoM values. ) => was in klammern bin ich mir nicht sicher 
 ```{r}
 # Setup
 fractions <- 1:25
@@ -563,7 +561,7 @@ for (cond in conditions) {
     
     # Single regex pattern to match all 25 fraction columns for this condition & replicate
     pattern <- paste0("^Fraction[0-9]+_", cond, "_", rep, "$") # defines a pattern 
-    cols <- grep(pattern, colnames(Norm_Data_for_t), value = TRUE) # chooses pattern from coloums (matching)
+    cols <- grep(pattern, colnames(Norm_Data_for_t), value = TRUE) # chooses pattern from colums (matching)
 
     # Subset and sort by fraction number
     subdata <- Norm_Data_for_t[, cols] # chooses all columns 
@@ -586,8 +584,8 @@ head(CoM_Data_for_t)
 ```
 
 
-### Calculating Shift-Values for T-Test - Lina
-#### Goal: 
+### 3. Calculating Shift-Values for T-Test - Lina
+### Goal: 
 - Calculate deviation between CoM of Ctrl and CoM of RNase and store in df for t-test 
 ```{r}
 # For each protein, subtract the RNase CoM from the corresponding Ctrl CoM across all three replicates to obtain replicate-wise shift distances.
@@ -603,45 +601,45 @@ Shift_Data_for_t <- data.frame(
 sum(is.na(Shift_Data_for_t))
 ```
 
-### T-Test - Cihan
+### 4. T-Test - Cihan
 #### Goal: 
-- To statistically test whether proteins show a significant left-shift in their center of mass (CoM) distribution in RNase vs. Ctrl, indicating RNA-dependent localization.
+- Statistically test whether proteins show a significant left-shift in their center of mass (CoM) distribution in RNase vs. Ctrl, indicating RNA-dependent localization.
 - This is done by:
-1. Applying the Shapiro-Wilk test first to ensure the shift values are normally distributed before running the t-test.
-2. Testing if the shift distance is significantly greater than 1 using a one-sided t-test.
+  1. Applying the Shapiro-Wilk test to firstly ensure, that shift values of the replicates are normally distributed before running the t-test.
+  2. Testing if the shift distance is significantly greater than 1 using a one-sided t-test.
 - Significant hits are categorized as RBPs.
 ```{r}
-# create empty columns for statistical test results 
+# Create empty columns for statistical test results 
 Shift_Data$shapiro_p <- NA
 Shift_Data$normal_distributed <- NA
 Shift_Data$p_value_ttest_filtered <- NA
 Shift_Data$significant_ttest_filtered <- NA
 
-# iterate over all proteins 
+# Iterate over all proteins 
 for (protein in rownames(Shift_Data_for_t)) {
   
-  # extract shift distances for each replicate
+  # Extract shift distances for each replicate
   shift_values <- as.numeric(Shift_Data_for_t[protein, c("shift_distance_rep1", "shift_distance_rep2", "shift_distance_rep3")])
   
-  # make sure that no NAs are present
+  # Make sure that no NAs are present
   if (all(!is.na(shift_values))) {
     
-    # check if all values are identical (no variance)
+    # Check if all values are identical (no variance)
     if (length(unique(shift_values)) == 1) {
       
-      # set normal distribution to TRUE if no variance is present
+      # Set normal distribution to TRUE if no variance is present
       Shift_Data[protein, "shapiro_p"] <- NA
       Shift_Data[protein, "normal_distributed"] <- TRUE
       
     } else {
       
-      # perform Shapiro-Wilk test to check for normal distribution
+      # Perform Shapiro-Wilk test to check for normal distribution
       shapiro_result <- shapiro.test(shift_values)
       Shift_Data[protein, "shapiro_p"] <- shapiro_result$p.value
       Shift_Data[protein, "normal_distributed"] <- shapiro_result$p.value >= 0.05
     }
     
-    # perfrom one-sided t-test if data is normal distributed
+    # Perform one-sided t-test if data is normal distributed
     if (Shift_Data[protein, "normal_distributed"] == TRUE) {
       
       test_result <- t.test(shift_values, mu = 1, alternative = "greater")
@@ -650,24 +648,24 @@ for (protein in rownames(Shift_Data_for_t)) {
       Shift_Data[protein, "significant_ttest_filtered"] <- ifelse(test_result$p.value < 0.05, TRUE, FALSE)
       
     } else {
-      # no t-test applied if data is not normal distributed
+      # No t-test applied if data is not normal distributed
       Shift_Data[protein, "p_value_ttest_filtered"] <- NA
       Shift_Data[protein, "significant_ttest_filtered"] <- NA
     }
   }
 }
 
-# summary of proteins regarding normal distribution
+# Summary of proteins regarding normal distribution
 table(Shift_Data$normal_distributed, useNA = "ifany")
 
-# summary of proteins regarding significant of t-test
+# Summary of proteins regarding significance of t-test
 table(Shift_Data$significant_ttest_filtered, useNA = "ifany")
 
 head(Shift_Data)
 ```
 
 ## Plot T-Test Results - Lina
-GOAL: Plot t-test results by visualizing CoM positions in Ctrl vs. RNase 
+###Goal: Plot t-test results by visualizing CoM positions in Ctrl vs. RNase 
 ```{r}
 # Create scatter plot of CoM values in Ctrl (x) vs. RNase (y) for all proteins
 # Color points based on t-test result (significant or not)
@@ -693,7 +691,8 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
 ```
 
 ## Validation of T-Test with UniProt Data - Lina
-To assess the validity of our T-test-based identification of RNA-binding proteins (RBPs), we compare the results with annotated human RBPs from UniProt.
+### Goal:
+Assess the validity of our T-test-based identification of RNA-binding proteins (RBPs), by comparing the results with annotated human RBPs from UniProt.
 
 This includes:
 - Overlap analysis between our tested proteins and known UniProt RBPs
@@ -725,7 +724,7 @@ glue("Hit rate: {round(length(overlap_t_test)/length(overlap_MS_Table)*100, 2)}%
 
 # Determine number of identified RBS not listed as RBP in UniProt 
 novel_candidates <- t_test_positives[!t_test_positives %in% known_rbps]
-glue("Novel Candidates identified as RBP but not listed in UniProt: {(length(novel_candidates))}")
+glue("Novel candidates identified as RBP but not listed in UniProt: {(length(novel_candidates))}")
 
 # Positive Control Validation
 
@@ -734,7 +733,7 @@ glue("Novel Candidates identified as RBP but not listed in UniProt: {(length(nov
 
   # Check whether they are in our dataset and classified as T-test positives
   pos_df <- data.frame(
-    Protein_Postive_Control = pos_controls,
+    Protein_Positive_Control = pos_controls,
     InDataset = pos_controls %in% rownames(MS_Table),
     TTest = pos_controls %in% t_test_positives)
   print(pos_df)
@@ -753,34 +752,31 @@ glue("Novel Candidates identified as RBP but not listed in UniProt: {(length(nov
 ```
 
 ### Evaluation of T-Test Limitations - Lina, Cihan, Sofia
-
+### Goal:
 This section investigates potential false negatives from the T-test-based RBP identification.  
-We explore cases where known RBPs were not classified as significant and examine possible causes:
-
-- **Incomplete data**: 12% of non-identified RBPs were excluded due to missing measurements (e.g., only RNase or only Ctrl values available)  
-- **Violation of normality assumption**: 10% failed the Shapiro-Wilk test for normal distribution (e.g., HTSF1, LSM8)  
-- **Marginal p-values**: ~8% exhibited consistent shifts but did not reach significance (e.g., RPP29_HUMAN with p = 0.08)
-
-Manual inspection of 40 non-identified RBPs suggests a false negative rate of approximately 12% within the testable subset (visual shift despite test results) 
-From a sample of 40 T-test-positive proteins, only 2 would have been visually rejected as RBPs, corresponding to a 5% false positive rate. 
-Furthermore, of all proteins with p-values > 0.045 (n = 18), only 4 were judged inconsistent with an RBP-like shift profile,  
-suggesting that most borderline cases still show convincing shift patterns.
+- Explore cases where known RBPs were not classified as significant and examine possible causes.
+- Manual inspection of  different samples of 40 proteins:
+    - Not identified RBPs to assess false negative rate.
+    - T-Test positives to assess false positive rate. 
+    - Borderline cases (0.05 > p-value > 0.045)
 
 ```{r}
-#Identify known UniProt RBPs not found by T-Test
+# Identify known UniProt RBPs not found by T-Test
 not_identified <- known_rbps[! known_rbps %in% t_test_positives & known_rbps %in% rownames(MS_Table)]
 
 # Total "missed" RBPs present in dataset
-glue("RNA-binding/-interacting proteins (UniProt) analyzed but not detected in our data: {length(not_indentified)}")
+glue("RNA-binding/-interacting proteins (UniProt) analyzed but not detected in our data: {length(not_identified)}")
 
 # Analyze potential causes
-sum(is.na(Shift_Data[not_identified, "shapiro_p"])) /length(not_identified) # Missing Shapiro results because of missing values (approx.%)
 shapiro_failed <- Shift_Data[is.na(Shift_Data$shapiro_p),]
-glue("Number of Proteins, that where excluded, because shapiro results where NA: {nrow(shapiro_failed)}")
+percentage_shapiro_failed <- sum(is.na(Shift_Data[not_identified, "shapiro_p"])) /length(not_identified) *100
+glue("Number of Proteins, that were excluded, because shapiro results where NA: {nrow(shapiro_failed)}")
+glue("Approx. Percentage of not identified RBPs that where lost in Shapiro-Wilk test: {round(percentage_shapiro_failed, 1)} %")
 
-sum(Shift_Data[not_identified, "normal_distributed"] == FALSE) / length(not_identified) # Failed normality (approx. %)
 normality_failed <- Shift_Data[Shift_Data$normal_distributed == FALSE,]
-glue("Number of Proteins, that where excluded, because repliactes wheren't normally ditributed: {nrow(normality_failed)}")
+percentage_normality_failed <- sum(Shift_Data[not_identified, "normal_distributed"] == FALSE) / length(not_identified) *100
+glue("Number of Proteins, that where excluded, because replicates wheren't normally distributed: {nrow(normality_failed)}")
+glue("Approx. Percentage of not identified RBPs that where lost in normality test: {round(percentage_normality_failed, 1)} %")
 
 ```
 
@@ -790,9 +786,7 @@ sample_not_identified <- head( not_identified, 40)
 for (s in sample_not_identified ){
   plot_protein(s)
 }
-# Display statistical values for this subset
-print(Shift_Data_for_t[sample_not_identified,])
-print(Shift_Data[sample_not_identified, c("shapiro_p","normal_distributed","p_value_ttest_filtered","significant_ttest_filtered")])
+glue("Manual inspection of 40 non-identified RBPs suggests a false negative rate of approximately 13% (5 out of 40) within the testable subset (visual shift despite test results)")
 ```
 
 ```{r}
@@ -801,6 +795,8 @@ sample_t_test_positives <-head(t_test_positives,40)
 for (s in sample_t_test_positives){
   plot_protein(s)
 }
+
+glue("From a sample of 40 T-test-positive proteins, only 2 would have been visually rejected as RBPs, corresponding to a 5% false positive rate.")
 ```
 
 ```{r}
@@ -815,13 +811,16 @@ t_test_positives_critical_p_value <- rownames(
 for (s in t_test_positives_critical_p_value){
   plot_protein(s)
 }
+
+glue("Furthermore, of all proteins with p-values > 0.045 (n = 18), only 4 were judged inconsistent with an RBP-like shift profile, suggesting that most borderline cases still show convincing shift patterns.")
 ```
 
 ###Plot Validation of T-test with UniProt Data - Lina
-This plot extends the CoM-based T-test visualization by highlighting known RBPs from UniProt.
-This view helps assess the sensitivity and limitations of the shift-based identification method relative to external RBP annotations.
+### Goal:
+- This plot extends the CoM-based T-test visualization by highlighting known RBPs from UniProt.
+- This view helps assess the sensitivity and limitations of the shift-based identification method relative to external RBP annotations.
 ```{r}
-# Create data subset of proteins for highlighting (was nessesary for coloring sequence)
+# Create data subset of proteins for highlighting (was necessary for coloring sequence)
 highlight_data <- subset(Shift_Data,
                          rownames(Shift_Data) %in% overlap_t_test |
                          rownames(Shift_Data) %in% not_identified |
@@ -829,14 +828,14 @@ highlight_data <- subset(Shift_Data,
 
 # Classify each protein into a color group
 highlight_data$color_group <- case_when(
-  rownames(highlight_data) %in% overlap_t_test ~ "Overlaping with UniProt",
+  rownames(highlight_data) %in% overlap_t_test ~ "Overlapping with UniProt",
   rownames(highlight_data) %in% not_identified ~ "UniProt Proteins not identified",
   rownames(highlight_data) %in% novel_candidates ~ "Novel Candidates"
 )
 
 # Control transparency depending on group
 highlight_data$alpha_group <- case_when(
-  highlight_data$color_group == "Overlaping with UniProt" ~ "high",
+  highlight_data$color_group == "Overlapping with UniProt" ~ "high",
   highlight_data$color_group == "UniProt Proteins not identified" ~ "high",
   highlight_data$color_group == "Novel Candidates" ~ "low"
 )
@@ -853,7 +852,7 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
     scale_color_manual(name = "Significance as RBP",values = c(
     "No significant Shift" = "gray80",
     "Novel Candidates" = "lightcoral",
-    "Overlaping with UniProt" = "darkblue",
+    "Overlapping with UniProt" = "darkblue",
     "UniProt Proteins not identified" = "#009ACD"
     ))+
     scale_alpha_manual(values = c("high" = 0.7, "low" = 0.3), guide = "none") +
@@ -870,21 +869,21 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
     )
 ```
 
-## T-Test for non-synchronised HELA Cells - includes previous coded parts of all group members, slightly adjusted - Lina
-This section reproduces all necessary pipeline steps with adjusted variable names.  
-All variables related to the non-synchronized dataset are suffixed with `_NS`.
+## T-Test for non-synchronised HELA Cells - Lina
+- This section reproduces all necessary pipeline steps with adjusted variable names.  
+**NOTE:** All variables related to the non-synchronized dataset are suffixed with `_NS`.
 ```{r}
-#loading Data
+# Loading Data
 MS_Table_NS <- read.table("RDeeP_HeLa_NS.csv", header = TRUE, row.names = 1, sep = ";")
 
-#Dataframe
+# Dataframe
 treatment <- factor(rep(c("Ctrl", "RNase"), each = 3, length.out = 150))
 replicate <- factor(rep(c("Ctrl_Rep1", "Ctrl_Rep2", "Ctrl_Rep3", "RNase_Rep1","RNase_Rep2", "RNase_Rep3"),25))
 fraction <- factor(rep(paste0("Fraction_", 1:25), each = 6))
 
 data <- data.frame(rownames = colnames(MS_Table),treatment = treatment, replicate = replicate, fraction = fraction)
 
-# normalisation of triplicates
+# Normalization of triplicates
 average.list.NS <- list() 
 
 for (f in levels(fraction)) {
@@ -910,7 +909,7 @@ ordered_names <- as.vector(rbind(
 
 MS_Table_Averages_NS <- MS_Table_Averages_NS[, ordered_names]
 
-# Normalisation to 100
+# Normalization to 100
 
 ctrl_cols <- grep("^Ctrl_", colnames(MS_Table_Averages_NS)) 
 rnase_cols <- grep("^RNase_", colnames(MS_Table_Averages_NS))
@@ -921,7 +920,7 @@ rnase_norm <- MS_Table_Averages_NS[, rnase_cols] / rowSums(MS_Table_Averages_NS[
 MS_Table_Norm_NS <- cbind(ctrl_norm, rnase_norm)
 MS_Table_Norm_NS <- MS_Table_Norm_NS[, colnames(MS_Table_Averages_NS)]
 
-# Fuction for protein ploting 
+# Function for protein plotting 
 plot_protein_NS <- function(x) {
   protein_of_interest <- x 
   protein_row <- MS_Table_Norm_NS[rownames(MS_Table_Norm_NS) == protein_of_interest, ]
@@ -952,7 +951,7 @@ plot_protein_NS <- function(x) {
          lty=1, lwd = 1.5,  pch=20, bg = "white", bty = "o", box.col = NA)
 }
 
-# Shift Characteristics based on normalised Data and CoM
+# Shift Characteristics based on normalized Data and CoM
 x <- 1:25
 
 CoM_Ctrl_NS <- numeric(nrow(MS_Table_Norm_NS))
@@ -979,7 +978,7 @@ Shift_Data_NS <- data.frame(
   shift_direction= shift_direction_NS,
   row.names = rownames(MS_Table_Norm_NS))
 
-# Normalisation of MS_Table_NS to 100
+# Normalization of MS_Table_NS to 100
 
 ctrl_cols_t1 <- grep("_Ctrl_Rep1", colnames(MS_Table_NS))
 ctrl_cols_t2 <- grep("_Ctrl_Rep2", colnames(MS_Table_NS))
@@ -1011,7 +1010,7 @@ for (fraction in fractions) {
 }
 Norm_Data_for_t_NS <- Norm_Data_for_t_NS[, ordered_names]
 
-#Calculation of CoM for T-Test
+# Calculation of CoM for T-Test
 
 fractions <- 1:25
 conditions <- c("Ctrl", "RNase")
@@ -1046,7 +1045,7 @@ Shift_Data_for_t_NS <- data.frame(
   row.names = rownames(CoM_Data_for_t_NS)
 )
 
-#T-Test
+# T-Test
 
 Shift_Data_NS$shapiro_p <- NA
 Shift_Data_NS$normal_distributed <- NA
@@ -1080,20 +1079,19 @@ for (protein in rownames(Shift_Data_for_t_NS)) {
     }
   }
 }
-#Analysis of results for Nonsynchronised HeLa Cells
+# Analysis of results for non-synchronized HeLa Cells
 table(Shift_Data_NS$significant_ttest_filtered, useNA = "ifany")
 ```
 
-#Comparison of Proteins found as RBP in Mitosis vs. in NS_Hela - Lina
-This section compares proteins identified as RNA-binding by T-test in mitotic vs. non-synchronized HeLa cells.  
-We analyze the overlap between datasets, list proteins uniquely shifted during mitosis, and visualize differences in shift characteristics.
-Finally, a scatterplot compares shift distances across both conditions and highlights condition-specific RBPs.
+# Comparison of Proteins found as RBP in Mitosis vs. in NS_Hela - Lina
+### Goal:
+- Compare proteins identified as RNA-binding by T-test in mitotic vs. non-synchronized HeLa cells. Analyze the overlap between datasets, list proteins uniquely shifted during mitosis, and visualize differences in shift characteristics. 
 ```{r}
 
 # Identify proteins classified as significant RBPs in non-synchronized HeLa cells
 t_test_positives_NS <- rownames(Shift_Data_NS[Shift_Data_NS$significant_ttest_filtered == TRUE & !is.na(Shift_Data_NS$significant_ttest_filtered), ])
 
-# Determine protein overlap across datasets
+# Determine protein overlapp across datasets
 overlap_analysis <- intersect(rownames(MS_Table_NS), rownames(MS_Table))
 glue("Number of Proteins in sample NS_Hela: {length(rownames(MS_Table_NS))}")
 glue("Number of Proteins analysed in both samples: {length(overlap_analysis)}")
@@ -1130,7 +1128,7 @@ colnames(subset_data_NS) <- paste0(colnames(subset_data_NS), "_nonSync")
 Shift_Data_Combined <- cbind(subset_data_S,subset_data_NS)
 head(Shift_Data_Combined)
 
-#Scatterplot of shift distances
+# Scatterplot of shift distances
 
 ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`,
                                 y = `shift_distance_nonSync`,
@@ -1159,13 +1157,172 @@ ggplot(Shift_Data_Combined, aes(x = `shift_distance_mitosis`,
 
 
 
-#Clustering to find posible RBP complexes in our RBPs in Mitosis - Sofia and Cihan 
+# Further Data Analysis
 
-#1) Selection of clustering criteria and Hirarchical clustering to look at distribution of values posibel number of clusters
+## Additional Data for all Proteins using Uniprot and CORUM - Lina (carefull runs ~35 min!... grab a coffee :)
 
-Goal: select necessary parameters/ dimensions, get an idea of the distribution of clusters. 
+###Goal: 
+Build dataframe with annotations for further analysis such as references for RNA-dependent complexes or predicting molecular weight from peak position.
+- Molecular weights retrieved via the UniProt REST API
+- Complex membership based on the CORUM database (HUMAN complexes only)
 
--Peak_data is mainly taken into consideration, specifically peak hight ( not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant. Overall similar hight is more important than similar peak fraction. Runs only on RBPS only active in mitosis ( when compared to synchronized cells). Wards method ( euclidean distance applied), !i think here we have to say it didnt work. 
+```{r}
+# Map each protein's UniProt entry name to its accession ID
+get_accession_from_entryname <- function(entry_name) {
+  url <- paste0("https://rest.uniprot.org/uniprotkb/search?query=", 
+                entry_name, "&fields=accession&format=json&size=1")
+  res <- try(GET(url), silent = TRUE)
+  if (inherits(res, "try-error") || res$status_code != 200) {
+    return(NA)
+    }
+  txt <- content(res, "text", encoding = "UTF-8")
+  data <- fromJSON(txt, simplifyVector = FALSE)
+  if (length(data$results) == 0) {
+    return(NA)
+    }
+  else{
+  return(data$results[[1]]$primaryAccession)
+    }
+    
+}
+
+# Function to retrieve the molecular weight from UniProt for each accession ID
+get_uniprot_mass <- function(accession_ids) {
+  url <- paste0("https://rest.uniprot.org/uniprotkb/", accession_ids, ".json")
+  res <- try(GET(url), silent = TRUE)
+  if (inherits(res, "try-error") || res$status_code != 200) {
+    return(NA)
+    }
+  data <- fromJSON(content(res, "text", encoding = "UTF-8"))
+  return(data$sequence$molWeight)
+}
+
+# Apply both functions to the MS_Table entries
+entry_names <- rownames(MS_Table)
+accession_ids <- pbsapply(entry_names, get_accession_from_entryname)
+masses <- pbsapply(accession_ids, get_uniprot_mass)
+
+# Convert mass results into numeric vector (set to NA for proteins with failed retrieval)
+masses_vec <- rep(NA_real_, length(accession_ids))
+names(masses_vec) <- accession_ids
+valid_idx <- which(!sapply(masses, is.null))
+masses_vec[valid_idx] <- as.numeric(unlist(masses[valid_idx]))
+
+# Create annotated dataframe with UniProt and molecular weight
+protein_data <- data.frame(
+  Entry = entry_names,
+  UniProtAccession = accession_ids,
+  MolecularWeight_kDa = masses_vec / 1000
+)
+
+# Load CORUM data (human protein complexes only)
+corum <- fread("corum_humanComplexes.txt", sep = "\t", header = TRUE) 
+
+# Expand CORUM entries /Unlist so each UniProt ID is listed individually with its complex name
+corum_expanded <- corum[, .(
+  UniProtAccession = unlist(strsplit(subunits_uniprot_id, ";"))
+), by = .(ComplexName = complex_name)]
+
+corum_expanded <- unique(corum_expanded)
+
+# Add binary Expression wheather protein is part of any complex in CORUM?
+protein_data$CORUM_member <- protein_data$UniProtAccession %in% corum_expanded$UniProtAccession
+
+# Link all complex names associated with each protein (multiple allowed)
+corum_complex_list <- corum_expanded[, .(
+  CORUM_complex_names = paste(unique(ComplexName), collapse = "; ")
+), by = UniProtAccession]
+
+# Add complex names to protein data
+protein_data <- merge(protein_data, corum_complex_list, by = "UniProtAccession", all.x = TRUE, sort = FALSE)
+protein_data$CORUM_member <- !is.na(protein_data$CORUM_complex_names)
+
+# Background info — total number of unique proteins and complexes in CORUM
+n_human_complexes <- unique(corum$complex_id)
+length(n_human_complexes) # number of complexes
+
+all_proteins <- unlist(strsplit(corum$subunits_uniprot_id, ";"))
+unique_proteins <- unique(all_proteins)
+length(unique_proteins) # number of proteins in complexes
+
+sum(protein_data$CORUM_member== TRUE) # number of our proteins known to be in complex 
+```
+
+## New Plot Protein function with all additional data
+```{r}
+plot_protein_info <- function(x) {
+  
+  # Split up plot area
+  layout(matrix(1:2, nrow = 1), widths = c(4, 2))  
+  
+  # Extract data, define all variables and range of x- and y-axis
+  protein_of_interest <- x 
+  protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
+  ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
+  rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
+  fractions <- 1:25
+  max_val <- max(ctrl_values, rnase_values, na.rm = TRUE)
+  ylim_range <- c(0, max_val * 1.2)
+
+  # Core plot function using crtl_values
+  plot(fractions, ctrl_values, type="o", pch=20, lty=1, lwd = 1.5,  col="forestgreen", ylim= ylim_range,
+       xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest, axes = FALSE)
+       
+  # Add line for rnase_values
+  lines(fractions, rnase_values, type="o",pch =20, lty=1, lwd = 1.5,  col="firebrick3")
+  
+  # Color area under the curve
+  polygon(c(fractions, rev(fractions)), 
+          c(ctrl_values, rep(0, length(ctrl_values))), 
+          col=adjustcolor("forestgreen", alpha.f=0.1), border=NA)
+  
+  polygon(c(fractions, rev(fractions)), 
+          c(rnase_values, rep(0, length(rnase_values))), 
+          col=adjustcolor("firebrick3", alpha.f=0.1), border=NA)
+  
+  # Add x- and y-axis with correct labels
+  axis(1, at = 1:25, labels = 1:25, cex.axis = 0.7)
+  axis(2, cex.axis = 0.7, las =2)
+  grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted", lwd = 0.8)
+
+  # Add legend
+  legend("topright", legend=c("Ctrl", "RNase"), col=c("forestgreen", "firebrick3"), 
+         lty=1, lwd = 1.5,  pch=20, bg = "white", bty = "o", box.col = NA, horiz = TRUE)
+  
+  # Add info panel
+  par(mar = c(0, 0, 2, 0))
+  plot.new()
+  
+  shift_info <- subset_data_S[rownames(subset_data_S) == x, ]
+  protein_info <- protein_data[protein_data$Entry == x, ]
+  info_lines <- c(
+    paste("CoM Ctrl:",round(shift_info$CoM_Ctrl_mitosis, 1)),
+    paste("CoM RNase:", round(shift_info$CoM_RNase_mitosis, 1)),
+    paste("Shift Distance:", round(shift_info$shift_distance_mitosis, 1)),
+    paste("Identified as RBP:", shift_info$significant_ttest_filtered_mitosis),
+    paste("Known Complex (CORUM):", protein_info$CORUM_member),
+    paste("Weight (monomeric):", round(protein_info$MolecularWeight_kDa, 2) ,"kDA")
+  )
+  line_height <- 0.06
+  n_lines <- length(info_lines)
+  y_start <- 0.5 + (n_lines - 1) * line_height / 2
+  for (i in seq_along(info_lines)) {
+    y_pos <- y_start - (i - 1) * line_height
+    text(x = 0, y = y_pos, labels = info_lines[i], adj = c(0, 1), cex = 0.9)
+    }
+}
+
+plot_protein_info("RS6_HUMAN")
+```
+
+## Screening for RBP complexes active in Mitosis - Sofia and Cihan 
+
+### Selection of clustering criteria and hierarchical clustering
+### Goal: 
+Select necessary parameters/dimensions and get an idea of the distribution of clusters. 
+
+Additional Information
+- Peak_data is mainly taken into consideration, specifically peak height (not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant. Overall similar height is more important than similar peak fraction. Runs only on RBPS only active in mitosis ( when compared to synchronized cells). Wards method (euclidean distance applied), !i think here we have to say it did not work. 
 
 ```{r}
 
@@ -1218,10 +1375,12 @@ dev.off()
 
 ```
 
-#2) Using DBSCAN algorithm 
+### Using DBSCAN algorithm 
 
-Goal: find a clustering method that will highlite proteins which could be working in a complex based on the clustering method. 
+### Goal: 
+Find and applying a clustering method, that will highlite proteins, which could be working in a complex. 
 
+Additional Information:
 DBSCAN is a function that can classify points in low-density regions as "noise." This means clusters are not only defined by distance (like in k-means), but also by density.
 The code I wrote has two important parameters. These parameters are:
 
@@ -1278,9 +1437,11 @@ for (cl in sort(unique(db$cluster))) { # loops over each cluster number in sorte
 ```
 
 
-# 3)looking at plots of different clusters (aus Linas code) 
+### Looking at plots of different clusters 
+###Goal: 
+Looking if the plots look similar or not in order to validate the parameters choosen above. 
 
-Goal: Looking if the plots look similar or not in order to validate the parameters choosen above. This code can be always run to get a better feeling over clusters 
+Note! This code can be always run to get a better feeling over clusters 
 ```{r}
 # code from ploting a protein to visualize the proteins that seam to make a complex
 # View Examples
@@ -1290,28 +1451,25 @@ sample_RBPs_Cluster <- c("RL22_HUMAN", "RL23_HUMAN", "RL24_HUMAN", "RL27_HUMAN",
 for (r in sample_RBPs_Cluster){
   plot_protein(r)
 }
-
 ```
 
 
-# 4) finding the right parameters to choose the perfect cluster size 
-Goal: getting a good idea of how the picking of the parameters affects our clustering results by trying all combinations and creating a heat map based on the performance on a cluster (selected from exel from previous chunk). For the heatmap we made up following logic. 
+### Finding the right parameters to choose the perfect cluster size 
+###Goal: 
+Getting a good idea of how parameters affect our clustering results by trying all combinations and creating a heat map based on the performance on a cluster. 
+
+Additional Information:
+For the heatmap we made up following logic. 
 
 a) Based on all combinations from one cluster (positive control):
-
-If two proteins are in the same cluster → +1
-
-If two proteins are in different clusters → -1
-
-If one or both are classified as noise → 0
+- If two proteins are in the same cluster → +1
+- If two proteins are in different clusters → -1
+- If one or both are classified as noise → 0
 
 b) Based on two (or more) unrelated proteins (negative control):
-
-If they end up in the same cluster as our example proteins → -1
-
-If they end up in different clusters → +1
-
-If noise → 0 (I’m least sure about this case)
+- If they end up in the same cluster as our example proteins → -1
+- If they end up in different clusters → +1
+- If noise → 0 (I’m least sure about this case)
 
 ```{r}
 
@@ -1432,169 +1590,16 @@ ggplot(score_results, aes(x = eps, y = minPts, fill = score)) +
 
 ```
 
-# Additional Data for all Proteins using Uniprot and CORUM -Lina (carefull runs 35 min!!!... grab a coffee :)
 
-GOAl: Build Datframe with Annotations for further analyses such as testing for RNA-dependent complexes
-or predicting molecular weight from peak position.
-- Molecular weights retrieved via the UniProt REST API
-- Complex membership based on the CORUM database (HUMAN complexes only)
-
-```{r}
-# Map each protein's UniProt entry name to its accession ID
-get_accession_from_entryname <- function(entry_name) {
-  url <- paste0("https://rest.uniprot.org/uniprotkb/search?query=", entry_name, "&fields=accession&format=json&size=1")
-  res <- try(GET(url), silent = TRUE)
-  if (inherits(res, "try-error") || res$status_code != 200) {
-    return(NA)
-    }
-  txt <- content(res, "text", encoding = "UTF-8")
-  data <- fromJSON(txt, simplifyVector = FALSE)
-  if (length(data$results) == 0) {
-    return(NA)
-    }
-  else{
-  return(data$results[[1]]$primaryAccession)}
-    
-}
-
-# Function to retrieve the molecular weight from UniProt for each accession ID
-get_uniprot_mass <- function(accession_ids) {
-  url <- paste0("https://rest.uniprot.org/uniprotkb/", accession_ids, ".json")
-  res <- try(GET(url), silent = TRUE)
-  if (inherits(res, "try-error") || res$status_code != 200) {
-    return(NA)
-    }
-  data <- fromJSON(content(res, "text", encoding = "UTF-8"))
-  return(data$sequence$molWeight)
-}
-
-# Apply both functions to the MS_Table entries
-entry_names <- rownames(MS_Table)
-accession_ids <- pbsapply(entry_names, get_accession_from_entryname)
-masses <- pbsapply(accession_ids, get_uniprot_mass)
-
-# Convert mass results into numeric vector (set to NA for proteins with failed retrieval)
-masses_vec <- rep(NA_real_, length(accession_ids))
-names(masses_vec) <- accession_ids
-valid_idx <- which(!sapply(masses, is.null))
-masses_vec[valid_idx] <- as.numeric(unlist(masses[valid_idx]))
-
-# Create annotated dataframe with UniProt and molecular weight
-protein_data <- data.frame(
-  Entry = entry_names,
-  UniProtAccession = accession_ids,
-  MolecularWeight_kDa = masses_vec / 1000
-)
-
-# Load CORUM data (human protein complexes only)
-corum <- fread("corum_humanComplexes.txt", sep = "\t", header = TRUE) 
-
-# Expand CORUM entries /Unlist so each UniProt ID is listed individually with its complex name
-corum_expanded <- corum[, .(
-  UniProtAccession = unlist(strsplit(subunits_uniprot_id, ";"))
-), by = .(ComplexName = complex_name)]
-
-corum_expanded <- unique(corum_expanded)
-
-#Add binary Expression wheather protein is part of any complex in CORUM?
-protein_data$CORUM_member <- protein_data$UniProtAccession %in% corum_expanded$UniProtAccession
-
-#Link all complex names associated with each protein (multiple allowed)
-corum_complex_list <- corum_expanded[, .(
-  CORUM_complex_names = paste(unique(ComplexName), collapse = "; ")
-), by = UniProtAccession]
-
-#Add complex names to protein data
-protein_data <- merge(protein_data, corum_complex_list, by = "UniProtAccession", all.x = TRUE, sort = FALSE)
-protein_data$CORUM_member <- !is.na(protein_data$CORUM_complex_names)
-
-# Background info — total number of unique proteins and complexes in CORUM
-n_human_complexes <- unique(corum$complex_id)
-length(n_human_complexes) # number of complexes
-
-all_proteins <- unlist(strsplit(corum$subunits_uniprot_id, ";"))
-unique_proteins <- unique(all_proteins)
-length(unique_proteins) # number of proteins in complexes
-
-sum(protein_data$CORUM_member== TRUE) # number of our proteins known to be in complex 
-```
-
-## New Plot Protein function with all additional data
-```{r}
-plot_protein_info <- function(x) {
-  
-  #Split up plot area
-  layout(matrix(1:2, nrow = 1), widths = c(4, 2))  # 3:2 Verhältnis (Plot : Info)
-  
-  #Extract data, define all variables and range of x- and y-achsis
-  protein_of_interest <- x 
-  protein_row <- MS_Table_Norm[rownames(MS_Table_Norm) == protein_of_interest, ]
-  ctrl_values <- as.numeric(protein_row[seq(1, 49, by=2)])
-  rnase_values <- as.numeric(protein_row[seq(2, 50, by=2)])
-  fractions <- 1:25
-  max_val <- max(ctrl_values, rnase_values, na.rm = TRUE)
-  ylim_range <- c(0, max_val * 1.2)
-
-  #Core plot function using crtl_values
-  plot(fractions, ctrl_values, type="o", pch=20, lty=1, lwd = 1.5,  col="forestgreen", ylim= ylim_range,
-       xlab="Fraction", ylab="Normalized Intensity", main= protein_of_interest, axes = FALSE)
-       
-  #Add line for rnase_values
-  lines(fractions, rnase_values, type="o",pch =20, lty=1, lwd = 1.5,  col="firebrick3")
-  
-  #Color area under the curve
-  polygon(c(fractions, rev(fractions)), 
-          c(ctrl_values, rep(0, length(ctrl_values))), 
-          col=adjustcolor("forestgreen", alpha.f=0.1), border=NA)
-  
-  polygon(c(fractions, rev(fractions)), 
-          c(rnase_values, rep(0, length(rnase_values))), 
-          col=adjustcolor("firebrick3", alpha.f=0.1), border=NA)
-  
-  #Add x- and y-achsis with correct lables
-  axis(1, at = 1:25, labels = 1:25, cex.axis = 0.7)
-  axis(2, cex.axis = 0.7, las =2)
-  grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted", lwd = 0.8)
-
-  #Add legend
-  legend("topright", legend=c("Ctrl", "RNase"), col=c("forestgreen", "firebrick3"), 
-         lty=1, lwd = 1.5,  pch=20, bg = "white", bty = "o", box.col = NA, horiz = TRUE)
-  
-  # Add Info panel
-  par(mar = c(0, 0, 2, 0))
-  plot.new()
-  
-  shift_info <- subset_data_S[rownames(subset_data_S) == x, ]
-  protein_info <- protein_data[protein_data$Entry == x, ]
-  info_lines <- c(
-    paste("CoM Ctrl:",round(shift_info$CoM_Ctrl_mitosis, 1)),
-    paste("CoM RNase:", round(shift_info$CoM_RNase_mitosis, 1)),
-    paste("Shift Distance:", round(shift_info$shift_distance_mitosis, 1)),
-    paste("Identified as RBP:", shift_info$significant_ttest_filtered_mitosis),
-    paste("Known Complex (CORUM):", protein_info$CORUM_member),
-    paste("Weight (monomeric):", round(protein_info$MolecularWeight_kDa, 2) ,"kDA")
-  )
-  line_height <- 0.06
-  n_lines <- length(info_lines)
-  y_start <- 0.5 + (n_lines - 1) * line_height / 2
-  for (i in seq_along(info_lines)) {
-    y_pos <- y_start - (i - 1) * line_height
-    text(x = 0, y = y_pos, labels = info_lines[i], adj = c(0, 1), cex = 0.9)
-    }
-}
-
-plot_protein_info("RL27_HUMAN")
-```
-
-
-# Linear Regression Analysis - Trying to predict molecular weight through peak position - Lina
-GOAL: Investigate whether a linear model predicting molecular weight based on RNase values of this method (maximal peak position)can predict the molecular weight of proteins after RNase treatment.
+## Testing R-Deep for further use in molecular weight predictions (Linear Regression) - Lina
+### GoaL: 
+Investigate whether a linear model predicting molecular weight based on RNase values of this method (maximal peak position) can predict the molecular weight of proteins after RNase treatment.
 
 -->  Conclusion: This approach does NOT yield a valid predictive model!
 Possible reasons include:
 - Elution position depends not only on mass, but also shape and density of the protein.
 - Many proteins remain in RNA-independent protein complexes even after RNase treatment.(However, even after removing CORUM complex proteins, no strong correlation appears)
-- Maximal Peak Position is not the correct parameter to predict molecular weight (However, also parameter CoM showed no correlation)
+- Maximal Peak Position is not the correct parameter to predict molecular weight. (However, also parameter CoM showed no correlation)
 - Peak-based features (e.g. max position or CoM) are too simplistic for modeling this complex system
 
 ```{r}
@@ -1647,7 +1652,7 @@ CORUM_comlexes <- Protein_Data_for_LR[rownames(Protein_Data_for_LR) %in% CORUM_c
 
 # Scatter plot with reference line and annotations
 ggplot(Protein_Data_for_LR %>% filter(MolecularWeight_kDa <= 1000), aes(x = max_peak_position_RNase, y = MolecularWeight_kDa)) +
-  geom_point(aes(color = "All analysed Proteins")) +
+  geom_point(aes(color = "All analyzed Proteins")) +
   geom_point(data = CORUM_comlexes,aes(x = max_peak_position_RNase, y = MolecularWeight_kDa, color = "Proteins in Complex (CORUM)"),alpha = 0.3)  +
   geom_abline(intercept = coef(linear_reference)[1], 
               slope = coef(linear_reference)[2], 
