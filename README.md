@@ -22,11 +22,22 @@ the gradient upon RNase treatment. This shift indicates loss of RNA interactions
 that otherwise stabilize their complex or position in the gradient.
 The resulting list of RNA-dependent proteins was then cross-referenced with UniProt 
 annotations to evaluate how many of them were already known and how many may represent novel candidates.
-**Total RNA-dependent proteins identified: 794**
+
+**Total RNA-dependent proteins identified: 794** 
+
 **Validated by UniProt annotation: 230**
+
 **Novel RNA-binding candidates: 564**
 >
 ![Validation t-Test via UniProt](Validation_TTest_UniProt.png)
+**Fig. 1. Validation of RNA-dependence by T-Test using UniProt annotation:**
+Scatterplot comparing Center of Mass (CoM) values between control and RNase-treated 
+samples for all proteins. Each point represents one protein, color-coded by RNA-binding 
+significance: proteins overlapping with UniProt RBPs (dark blue), novel RNA-dependent candidates 
+identified by T-Test (light red), UniProt RBPs not detected as significant (cyan), and non-significant 
+proteins (grey). The dashed diagonal line marks equal CoM values, with leftward deviation indicating 
+RNA-dependent shift behavior. This visualization highlights both confirmed and potentially novel RBPs.
+
 
 ## Identification of mitosis specific proteins 
 To assess whether RNA-binding activity was specific to the mitotic phase, the same 
@@ -34,24 +45,35 @@ shift-based analysis was applied to non-synchronized HeLa cells. Shift profiles
 were then compared between conditions. Proteins that showed a significant shift 
 only during mitosis, but not in the non-synchronized state, were considered mitosis-specific 
 RNA-dependent proteins. 
+
 **RBPs uniquely active in mitosis: 237**
 >
 ![Comparison of Shift Distances between mitosis and non-synchronized condition](Shift_Distance_Mitosis_vs_NS.png)
-
+**Fig. 2. Comparative Shift Scatterplot (Mitosis vs. Non-Synchronized):**
+Scatterplot displays shift distances derived from center of mass (CoM) 
+values for all proteins under both conditions. Each point represents one protein, 
+color-coded by statistical significance. The red dashed identity line marks equal 
+shift behavior; proteins below the line show mitosis-specific leftward shifts, suggesting 
+RNA dependency unique to mitosis.
 
 ## Finding Complexes of mitotic RBPs
 To explore whether these RBPs act in shared complexes, density-based clustering 
 (DBSCAN) was performed using shift and peak features. Known complexes such as the 
 40S ribosomal subunit and the Nop56p-associated pre-rRNA complex served as validation benchmarks.
+
 **Proteins from 40S complex clustered together: 3/4**
+
 **Proteins from Nop56p complex clustered together: 4/9**
+
 **Proteins in relevant cluster (Cluster 4): 13**
 
 ## Predicting Molecular Weight
 It was hypothesized that shift behavior might correlate with molecular weight due 
 to sedimentation properties. However, linear regression between RNase-shift-based 
 elution profiles and known molecular weights showed no significant relationship.
+
 **Spearman correlation (peak position vs. MW): 0.014**
+
 **R² of linear regression: 0.00017 (p = 0.25)**
 
 
