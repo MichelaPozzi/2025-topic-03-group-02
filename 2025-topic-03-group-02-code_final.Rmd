@@ -1326,7 +1326,7 @@ plot_protein_info("RS6_HUMAN")
 Select necessary parameters/dimensions and get an idea of the distribution of clusters. 
 
 Additional Information
-- Peak_data is mainly taken into consideration, specifically peak height (not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant. Overall similar height is more important than similar peak fraction. Runs only on RBPS only active in mitosis ( when compared to synchronized cells). Wards method (euclidean distance applied), !i think here we have to say it did not work. 
+- Peak_data is mainly taken into consideration, specifically peak height (not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation, even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant. Overall similar height is more important than similar peak fraction. Runs only on set of RBPS exculsively active in mitosis . Wards method (euclidean distance applied), !i think here we have to say it did not work. 
 
 ```{r}
 
@@ -1382,7 +1382,7 @@ dev.off()
 ### Using DBSCAN algorithm 
 
 ### Goal: 
-Find and applying a clustering method, that will highlite proteins, which could be working in a complex. 
+Find and applying a clustering method, that will highlight proteins, which could be working in a complex. 
 
 Additional Information:
 DBSCAN is a function that can classify points in low-density regions as "noise." This means clusters are not only defined by distance (like in k-means), but also by density.
@@ -1447,7 +1447,7 @@ Looking if the plots look similar or not in order to validate the parameters cho
 
 Note! This code can be always run to get a better feeling over clusters 
 ```{r}
-# code from ploting a protein to visualize the proteins that seam to make a complex
+# Code from ploting a protein to visualize the proteins that seam to make a complex
 # View Examples
 
 sample_RBPs_Cluster <- c("RL22_HUMAN", "RL23_HUMAN", "RL24_HUMAN", "RL27_HUMAN", "RL30_HUMAN", "RL34_HUMAN", "RLA1_HUMAN", "RS26_HUMAN", "RS2_HUMAN", "RS6_HUMAN", "RS12_HUMAN") # insert names of clustered proteins you want to compare 
@@ -1460,7 +1460,7 @@ for (r in sample_RBPs_Cluster){
 
 ### Finding the right parameters to choose the perfect cluster size 
 ###Goal: 
-Getting a good idea of how parameters affect our clustering results by trying all combinations and creating a heat map based on the performance on a cluster. 
+Getting a good idea of how parameters affect our clustering results, by trying all combinations and creating a heat map based on the performance on a cluster. 
 
 Additional Information:
 For the heatmap we made up following logic. 
