@@ -22,9 +22,10 @@ the gradient upon RNase treatment. This shift indicates loss of RNA interactions
 that otherwise stabilize their complex or position in the gradient.
 The resulting list of RNA-dependent proteins was then cross-referenced with UniProt 
 annotations to evaluate how many of them were already known and how many may represent novel candidates.
-> Total RNA-dependent proteins identified: 794
-Validated by UniProt annotation: 230
-Novel RNA-binding candidates: 564
+**Total RNA-dependent proteins identified: 794**
+**Validated by UniProt annotation: 230**
+**Novel RNA-binding candidates: 564**
+>
 ![Validation t-Test via UniProt](Validation_TTest_UniProt.png)
 
 ## Identification of mitosis specific proteins 
@@ -33,7 +34,8 @@ shift-based analysis was applied to non-synchronized HeLa cells. Shift profiles
 were then compared between conditions. Proteins that showed a significant shift 
 only during mitosis, but not in the non-synchronized state, were considered mitosis-specific 
 RNA-dependent proteins. 
-> RBPs uniquely active in mitosis: 237
+**RBPs uniquely active in mitosis: 237**
+>
 ![Comparison of Shift Distances between mitosis and non-synchronized condition](Shift_Distance_Mitosis_vs_NS.png)
 
 
@@ -41,16 +43,16 @@ RNA-dependent proteins.
 To explore whether these RBPs act in shared complexes, density-based clustering 
 (DBSCAN) was performed using shift and peak features. Known complexes such as the 
 40S ribosomal subunit and the Nop56p-associated pre-rRNA complex served as validation benchmarks.
-> Proteins from 40S complex clustered together: 3/4
-Proteins from Nop56p complex clustered together: 4/9
-Proteins in relevant cluster (Cluster 4): 13
+**Proteins from 40S complex clustered together: 3/4**
+**Proteins from Nop56p complex clustered together: 4/9**
+**Proteins in relevant cluster (Cluster 4): 13**
 
 ## Predicting Molecular Weight
 It was hypothesized that shift behavior might correlate with molecular weight due 
 to sedimentation properties. However, linear regression between RNase-shift-based 
 elution profiles and known molecular weights showed no significant relationship.
-> Spearman correlation (peak position vs. MW): 0.014
-R² of linear regression: 0.00017 (p = 0.25)
+**Spearman correlation (peak position vs. MW): 0.014**
+**R² of linear regression: 0.00017 (p = 0.25)**
 
 
 
