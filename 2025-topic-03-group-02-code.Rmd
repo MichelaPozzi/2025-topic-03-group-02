@@ -771,7 +771,7 @@ suggesting that most borderline cases still show convincing shift patterns.
 not_identified <- known_rbps[! known_rbps %in% t_test_positives & known_rbps %in% rownames(MS_Table)]
 
 # Total "missed" RBPs present in dataset
-glue("RNA-binding/-interacting proteins (UniProt) analyzed but not detected in our data: {length(not_indentified)}")
+glue("RNA-binding/-interacting proteins (UniProt) analyzed but not detected in our data: {length(not_identified)}")
 
 # Analyze potential causes
 sum(is.na(Shift_Data[not_identified, "shapiro_p"])) /length(not_identified) # Missing Shapiro results because of missing values (approx.%)
