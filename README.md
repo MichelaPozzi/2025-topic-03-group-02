@@ -9,16 +9,51 @@ Welcome to the **Proteome-wide Screen for RNA-dependent Proteins** project! This
 
 # Results
 
+## Who is RiboSix?
+RS6_Human or as we call it RiboSix is one of the RNA-dependent proteins we identified.
+What makes it so unique is that is only active during mitosis and works in a complexe 
+with other RNA-dependent proteins. How we found that out, is described in the following. 
+
+
 ## Identification of RNA-dependent proteins 
-In our pipeline analysis, proteins were classified as RNA-dependent proteins if 
-they exhibited a shift in their Centre of Mass (CoM) greater than 1. Afterwards 
-all classified RBPs were compared with the annoted RBPs of UniProt. 
-> Identified RBPs: 794 
-Validated by UniProt: 230
-Novel candidates: 564
+To detect RNA-dependent behavior, proteins were classified as RNA-binding candidates 
+if their center of mass (CoM) shifted more than one fraction toward the top of 
+the gradient upon RNase treatment. This shift indicates loss of RNA interactions 
+that otherwise stabilize their complex or position in the gradient.
+The resulting list of RNA-dependent proteins was then cross-referenced with UniProt 
+annotations to evaluate how many of them were already known and how many may represent novel candidates.
+> Total RNA-dependent proteins identified: 794
+Validated by UniProt annotation: 230
+Novel RNA-binding candidates: 564
+![Validation t-Test via UniProt](Validation_TTest_UniProt.png)
+
+## Identification of mitosis specific proteins 
+To assess whether RNA-binding activity was specific to the mitotic phase, the same 
+shift-based analysis was applied to non-synchronized HeLa cells. Shift profiles 
+were then compared between conditions. Proteins that showed a significant shift 
+only during mitosis, but not in the non-synchronized state, were considered mitosis-specific 
+RNA-dependent proteins. 
+> RBPs uniquely active in mitosis: 237
+![Comparison of Shift Distances between mitosis and non-synchronized condition](Shift_Distance_Mitosis_vs_NS.png)
 
 
- 
+## Finding Complexes of mitotic RBPs
+To explore whether these RBPs act in shared complexes, density-based clustering 
+(DBSCAN) was performed using shift and peak features. Known complexes such as the 
+40S ribosomal subunit and the Nop56p-associated pre-rRNA complex served as validation benchmarks.
+> Proteins from 40S complex clustered together: 3/4
+Proteins from Nop56p complex clustered together: 4/9
+Proteins in relevant cluster (Cluster 4): 13
+
+## Predicting Molecular Weight
+It was hypothesized that shift behavior might correlate with molecular weight due 
+to sedimentation properties. However, linear regression between RNase-shift-based 
+elution profiles and known molecular weights showed no significant relationship.
+> Spearman correlation (peak position vs. MW): 0.014
+R² of linear regression: 0.00017 (p = 0.25)
+
+
+
 
 
 
