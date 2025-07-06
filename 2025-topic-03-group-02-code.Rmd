@@ -1368,9 +1368,9 @@ plot(hc_ward, labels = FALSE, main = "Ward's Method (no labels)")
 
 # image for download: 
 
-png("C://Users//Sofi//Desktop//4 Semester//Bioinfo_project//Downloadsdendrogram_large.png", width = 1200, height = 800)
-plot(hc_ward, labels = FALSE, main = "Ward's Method (Large Output)")
-dev.off()
+#png("your_path", width = 1200, height = 800)
+#plot(hc_ward, labels = FALSE, main = "Ward's Method (Large Output)")
+#dev.off()
 
 
 ```
