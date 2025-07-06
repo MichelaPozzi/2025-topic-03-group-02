@@ -11,7 +11,7 @@ By exploring how RBP activity and localization change during mitosis, we uncover
 ### Introduction to Our Data
 All proteins originate from mass spectrometry data of HeLa cells in mitosis.
 
-    Total number of proteins:
+    Total number of proteins:7159
 
     Number of fractions: 25
 
