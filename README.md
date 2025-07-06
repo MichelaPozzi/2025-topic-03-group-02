@@ -28,8 +28,8 @@ annotations to evaluate how many of them were already known and how many may rep
 **Validated by UniProt annotation: 230**
 
 **Novel RNA-binding candidates: 564**
->
-![Validation t-Test via UniProt](Validation_TTest_UniProt.png)
+
+> ![Validation t-Test via UniProt](Validation_TTest_UniProt.png)
 **Fig. 1. Validation of RNA-dependence by T-Test using UniProt annotation:**
 Scatterplot comparing Center of Mass (CoM) values between control and RNase-treated 
 samples for all proteins. Each point represents one protein, color-coded by RNA-binding 
@@ -47,8 +47,7 @@ only during mitosis, but not in the non-synchronized state, were considered mito
 RNA-dependent proteins. 
 
 **RBPs uniquely active in mitosis: 237**
->
-![Comparison of Shift Distances between mitosis and non-synchronized condition](Shift_Distance_Mitosis_vs_NS.png)
+> ![Comparison of Shift Distances between mitosis and non-synchronized condition](Shift_Distance_Mitosis_vs_NS.png)
 **Fig. 2. Comparative Shift Scatterplot (Mitosis vs. Non-Synchronized):**
 Scatterplot displays shift distances derived from center of mass (CoM) 
 values for all proteins under both conditions. Each point represents one protein, 
