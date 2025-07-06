@@ -44,7 +44,7 @@ library(data.table) # Fast loading of large tables (CORUM) and simple grouping /
 
 ```
 
-#Loading MS-Data
+# Loading MS-Data
 ```{r}
 MS_Table <- read.table("RDeeP_HeLa_Mitosis.csv", header = TRUE, row.names = 1, sep = ";")
 ```
@@ -62,10 +62,11 @@ glue("Overall minimum intensity: {min(MS_Table)}")
 glue("Overall maximum intensity: {max(MS_Table)}")
 ```
 
-#Normalization - Cihan, Sofia,Lina
+# Normalization - Cihan, Sofia,Lina
 ### Goal: 
+
 - Generate a new dataframe with replicate-averaged intensity values,scaled so that each protein's total intensity sums to 100 across all fractions (for Ctrl and RNase)
-- Build a function to plot protein profiles using the normalized data  
+- Build a function to plot protein profiles using the normalized data
 - Confirm experimental reproducibility by comparing intensity profiles across replicates
 
 ## Normalization of triplicates - Lina
@@ -160,6 +161,7 @@ ggplot(summary_df, aes(x = Protein, y = Mean)) +
 
 ## Normalization to 100 - Cihan
 ### Goal: 
+
 - Create a new dataframe in which the values for each protein are scaled so that the distribution within the Ctrl and RNase conditions each sums to 100
 - For less variance between the fractions --> This allows comparison of distribution independent of absolute abundance
 ```{r}
@@ -174,7 +176,6 @@ rnase_norm <- MS_Table_Averages[, rnase_cols] / rowSums(MS_Table_Averages[, rnas
 # Combine in one table 
 MS_Table_Norm <- cbind(ctrl_norm, rnase_norm)
 MS_Table_Norm <- MS_Table_Norm[, colnames(MS_Table_Averages)]
-head(round(MS_Table_Norm, 2))
 
 # Verify the calculation with one example; the row sum should be ~200 (Ctrl 100% + RNAse 100%)
 rowSums(MS_Table_Norm["1433B_HUMAN", ]) 
@@ -222,12 +223,13 @@ plot_protein <- function(x) {
 }
 
 # Example
-plot_protein("RL27_HUMAN") 
+plot_protein("RS6_HUMAN") 
 ```
 
 
 ## Reproducibility Analysis - Cihan, Sofia 
 ### Goal: 
+
 - Assess reproducibility of MS-based protein measurements for both treatments 
 - Visualize how consistent protein ranking patterns are across all replicates and fractions
 - We expect a diagonal showing our r = 1, while the other combinations should show lower correlation
@@ -455,10 +457,13 @@ Peak_Data <- Peak_Data[, order]
 
 # Shift Characteristics - Lina, Sofia, Cihan
 
-Goal:
+### Goal:
+
 - Quantify and summarize positional shifts in protein distribution between Ctrl and RNase conditions using center of mass (CoM) calculation as a weighted average 
 - Further shift characterization with:
+
   Shift distance: difference between CoM_Ctrl and CoM_RNase
+  
   Shift direction: +1 = left-shift, –1 = right-shift, 0 = no shift
 
 **NOTE:** CoM-based shift calculations is later repeated per replicate and used for statistical testing (t-test) to identify significantly shifting RBPs.
@@ -497,9 +502,7 @@ Shift_Data <- data.frame(
 
 ## T-Test
 ### 1. Normalization of whole MS_Table to 100 - Cihan
-### Goal: 
-- Normalize the values of each replicate within each treatment (Ctrl and RNase), so that the total across all 25 fractions equals 100 per replicate.
-- This ensures comparability between replicates by removing global intensity differences and prepares the data for center of mass (CoM) calculation and statistical testing (t-test) later on
+
 ```{r}
 # Split up all Ctrl and RNAse values and their individual Reps 
 ctrl_cols_t1 <- grep("_Ctrl_Rep1", colnames(MS_Table))
@@ -544,8 +547,6 @@ rowSums(Norm_Data_for_t["1433B_HUMAN", ])
 ```
 
 ### 2. Calculation of Center of mass (CoM) - Sofia 
-### Goal:
-- Calculating center of mass (CoM) for all replicates and treatments 
 
 ```{r}
 # Setup
@@ -580,13 +581,10 @@ CoM_Data_for_t <- as.data.frame(results_com)
 
 rownames(CoM_Data_for_t) <- rownames(Norm_Data_for_t) # apply rownames from df to new df 
 
-head(CoM_Data_for_t)
 ```
 
-
 ### 3. Calculating Shift-Values for T-Test - Lina
-### Goal: 
-- Calculate deviation between CoM of Ctrl and CoM of RNase and store in df for t-test 
+
 ```{r}
 # For each protein, subtract the RNase CoM from the corresponding Ctrl CoM across all three replicates to obtain replicate-wise shift distances.
 # Columns 1–3 = Ctrl_Rep1–3, Columns 4–6 = RNase_Rep1–3 (in CoM_Data_for_t)
@@ -603,6 +601,7 @@ sum(is.na(Shift_Data_for_t))
 
 ### 4. T-Test - Cihan
 #### Goal: 
+
 - Statistically test whether proteins show a significant left-shift in their center of mass (CoM) distribution in RNase vs. Ctrl, indicating RNA-dependent localization.
 - This is done by:
   1. Applying the Shapiro-Wilk test to firstly ensure, that shift values of the replicates are normally distributed before running the t-test.
@@ -660,12 +659,11 @@ table(Shift_Data$normal_distributed, useNA = "ifany")
 
 # Summary of proteins regarding significance of t-test
 table(Shift_Data$significant_ttest_filtered, useNA = "ifany")
-
-head(Shift_Data)
 ```
 
 ## Plot T-Test Results - Lina
-###Goal: Plot t-test results by visualizing CoM positions in Ctrl vs. RNase 
+### Goal: 
+- Plot t-test results by visualizing CoM positions in Ctrl vs. RNase 
 ```{r}
 # Create scatter plot of CoM values in Ctrl (x) vs. RNase (y) for all proteins
 # Color points based on t-test result (significant or not)
@@ -695,6 +693,7 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`, color = case_when(
 Assess the validity of our T-test-based identification of RNA-binding proteins (RBPs), by comparing the results with annotated human RBPs from UniProt.
 
 This includes:
+
 - Overlap analysis between our tested proteins and known UniProt RBPs
 - Calculation of a hit rate (percentage of known RBPs detected as T-test positives)
 - Validation with literature-supported positive and negative control proteins
@@ -753,13 +752,16 @@ glue("Novel candidates identified as RBP but not listed in UniProt: {(length(nov
 
 ### Evaluation of T-Test Limitations - Lina, Cihan, Sofia
 ### Goal:
-This section investigates potential false negatives from the T-test-based RBP identification.  
-- Explore cases where known RBPs were not classified as significant and examine possible causes.
-- Manual inspection of  different samples of 40 proteins:
-    - Not identified RBPs to assess false negative rate.
-    - T-Test positives to assess false positive rate. 
-    - Borderline cases (0.05 > p-value > 0.045)
 
+This section investigates potential false negatives from the T-test-based RBP identification. 
+
+- Explore cases where known RBPs were not classified as significant and examine possible causes.
+- Manual inspection of  different samples of 40 proteins each:
+  1. Not identified RBPs to assess false negative rate.
+  2. T-Test positives to assess false positive rate. 
+  3. Borderline cases (0.05 > p-value > 0.045)
+
+**NOTE:** Here only samples of 10 proteins are shown, for visibility in html
 ```{r}
 # Identify known UniProt RBPs not found by T-Test
 not_identified <- known_rbps[! known_rbps %in% t_test_positives & known_rbps %in% rownames(MS_Table)]
@@ -782,7 +784,8 @@ glue("Approx. Percentage of not identified RBPs that where lost in normality tes
 
 ```{r}
 #Visual inspection of a sample of non-identified proteins
-sample_not_identified <- head( not_identified, 40)
+par(mfrow = c(2, 5))
+sample_not_identified <- head( not_identified, 10)
 for (s in sample_not_identified ){
   plot_protein(s)
 }
@@ -791,7 +794,8 @@ glue("Manual inspection of 40 non-identified RBPs suggests a false negative rate
 
 ```{r}
 #Visual inspection of a sample of T-Test positive proteins
-sample_t_test_positives <-head(t_test_positives,40)
+par(mfrow = c(2, 5))
+sample_t_test_positives <-head(t_test_positives,10)
 for (s in sample_t_test_positives){
   plot_protein(s)
 }
@@ -801,6 +805,7 @@ glue("From a sample of 40 T-test-positive proteins, only 2 would have been visua
 
 ```{r}
 # Visual inspection of proteins with marginally significant p-values (above 0.045)
+par(mfrow = c(4, 5))
 t_test_positives_critical_p_value <- rownames(
   Shift_Data[
     Shift_Data$significant_ttest_filtered == TRUE &
@@ -815,8 +820,9 @@ for (s in t_test_positives_critical_p_value){
 glue("Furthermore, of all proteins with p-values > 0.045 (n = 18), only 4 were judged inconsistent with an RBP-like shift profile, suggesting that most borderline cases still show convincing shift patterns.")
 ```
 
-###Plot Validation of T-test with UniProt Data - Lina
+### Plot Validation of T-test with UniProt Data - Lina
 ### Goal:
+
 - This plot extends the CoM-based T-test visualization by highlighting known RBPs from UniProt.
 - This view helps assess the sensitivity and limitations of the shift-based identification method relative to external RBP annotations.
 ```{r}
@@ -870,7 +876,9 @@ ggplot(Shift_Data, aes(x = `CoM_Ctrl`, y = `CoM_RNase`)) +
 ```
 
 ## T-Test for non-synchronised HELA Cells - Lina
-- This section reproduces all necessary pipeline steps with adjusted variable names.  
+
+- This section reproduces all necessary pipeline steps with adjusted variable names. 
+
 **NOTE:** All variables related to the non-synchronized dataset are suffixed with `_NS`.
 ```{r}
 # Loading Data
@@ -1111,14 +1119,16 @@ RBPs_Hela <- intersect(RBPs_Hela, overlap_analysis)
 glue("Number RBPs found only in non-synchonized cells: {length(RBPs_Hela)}")
 
 # Display a sample of plots (mitosis and non-synchronised) of RBPs uniquely active in mitosis
+par(mfrow = c(4, 5))
 sample_RBPs_Mitosis <- head(RBPs_Mitosis,10)
 for (r in sample_RBPs_Mitosis){
   plot_protein(r)
   plot_protein_NS(r)
 }
+```
 
 # Visualise differences in shift characteristics
-
+```{r}
 # Define variables to extract from both datasets
 cols_to_extract <- c("CoM_Ctrl", "CoM_RNase", "shift_distance", "shift_direction", "p_value_ttest_filtered", "significant_ttest_filtered")
 
@@ -1325,8 +1335,9 @@ plot_protein_info("RS6_HUMAN")
 ### Goal: 
 Select necessary parameters/dimensions and get an idea of the distribution of clusters. 
 
-Additional Information
-- Peak_data is mainly taken into consideration, specifically peak height (not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation, even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant. Overall similar height is more important than similar peak fraction. Runs only on set of RBPS exculsively active in mitosis . Wards method (euclidean distance applied), !i think here we have to say it did not work. 
+### Additional Information:
+
+Peak_data is mainly taken into consideration, specifically peak height (not position or number of peaks) we only focus on Ctrl samples, not RNase as we expect different proteins to have different distributions after RNase degradation, even when they are in the same complex. Following this logic shift data is also irrelevant. To this data we add COM of Ctrl, here peak position is relevant. Overall similar height is more important than similar peak fraction. Runs only on set of RBPS exculsively active in mitosis . Wards method (euclidean distance applied), !i think here we have to say it did not work. 
 
 ```{r}
 
@@ -1345,7 +1356,6 @@ merged_filterd_mitosis <- cbind(
   filtered_peak_Mitosis %>% select(ends_with("height_Ctrl")) # choosing only col that end with
 )
 
-head(merged_filterd_mitosis)
 
 # 3) clean data for further steps 
 
@@ -1384,7 +1394,7 @@ dev.off()
 ### Goal: 
 Find and applying a clustering method, that will highlight proteins, which could be working in a complex. 
 
-Additional Information:
+### Additional Information:
 DBSCAN is a function that can classify points in low-density regions as "noise." This means clusters are not only defined by distance (like in k-means), but also by density.
 The code I wrote has two important parameters. These parameters are:
 
@@ -1499,9 +1509,6 @@ for (eps in seq(0.5, 1.5, by = 0.1)) {
     results_df[[col_name]] <- db$cluster
   }
 }
-
-# 4. Preview result
-head(results_df)
 
 # -------------- PART 2: Creating a loop for all possible combinations for ε between the numbers ( 0.5-1.5) in steps of 0.1 and for MinPts (1-10) in steps of 1 ----------
 
