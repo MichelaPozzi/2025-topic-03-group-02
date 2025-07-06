@@ -1,13 +1,12 @@
 # 2025-topic-03-group-02
-# 🧬 Proteome-wide Screen for RNA-dependent Proteins
-
-Welcome to the **Proteome-wide Screen for RNA-dependent Proteins** project! This repository will serve as the central place for exploring, analyzing, and visualizing data related to RNA-protein interactions across the proteome.
-
-# **Introduction** 
+# 🧬 Proteome-wide Screen for RNA-dependent Proteins of HeLa cells synchronized in mitosis
 
 
+## **Introduction** 
 
-# **Results**
+
+
+## **Results**
 
 ### Who is RiboSix?
 RS6_Human or as we call it RiboSix is one of the RNA-dependent proteins we identified.
@@ -81,6 +80,7 @@ elution profiles and known molecular weights showed no significant relationship.
 
 **R² of linear regression: 0.00017 (p = 0.25)**
 
+## Repository 
 
 
 
