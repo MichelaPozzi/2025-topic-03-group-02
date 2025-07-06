@@ -110,30 +110,30 @@ elution profiles and known molecular weights showed no significant relationship.
 **R² of linear regression: 0.00017 (p = 0.25)**
 
 ## Repository 
-1. Main Analysis Code  
-The main part of the project, the code, can be found under "2025-topic-03-group-02-code_final.Rmd". A rendered (knitted) version is also available in the repository for easier viewing.
+1. **Main Analysis Code  **
+The main part of the project, the code, can be found under "2025-topic-03-group-02-code_final.Rmd".
 
-2. Datasets  
+2. **Datasets  **
 All used datasets are stored in the folder called "datasets". It includes: 
    a) RDeeP_HeLa_Mitosis.csv --> the initial Proteomic dataset of HeLa cells synchronized in mitosis. 
    b) RDeeP_HeLa_NS.csv --> the dataset from non-synchronized HeLa cells, used to filter out RBPs that are not mitosis-specific.
    
-3. Reference Databases  
+3. **Reference Databases  **
 All external reference data can be found in the folder "databanks". It includes: 
    a) uniprotkb_KW_0694_AND_model_organism_96_2025_07_04.tsv --> A list of annotated RBPs from UniProt.
    b) corum_humanComplexes --> Known human protein complexes used to validate clustering results. 
    
-4. Unused Code    
+4. **Unused Code    **
 Throughout the project, various approaches and analyses were tested. While not all made it into the final pipeline, it should not go to waste.
 All of the parts that did not make it, can be found in the rmd.file called "Unused Code Chunks".
    
-5. Poster  
-The poster to present all the findings is titled "2025-topic-03-group-02-poster.pptx" and will be presented on Thursday, July 10th, 2025.
+5. **Poster  **
+The poster to present all the findings is titled "2025-topic-03-group-02-poster.pdf" and will be presented on Thursday, July 10th, 2025.
 
-6. This README  
+6. **This README  **
 Not be left out, this "README.md" file is also part of the Repository. 
 
-7. Images  
+7. **Images  **
 As is the folder called "Images" containing all the images used in this README.
 
 
