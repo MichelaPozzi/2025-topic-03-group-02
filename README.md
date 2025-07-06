@@ -9,6 +9,14 @@ Welcome to the **Proteome-wide Screen for RNA-dependent Proteins** project! This
 
 # Results
 
+## Identification of RNA-dependent proteins 
+In our pipeline analysis, proteins were classified as RNA-dependent proteins if 
+they exhibited a shift in their Centre of Mass (CoM) greater than 1. Afterwards 
+all classified RBPs were compared with the annoted RBPs of UniProt. 
+> Identified RBPs: 794 
+Validated by UniProt: 230
+Novel candidates: 564
+
 
  
 
