@@ -114,13 +114,13 @@ elution profiles and known molecular weights showed no significant relationship.
 The main part of the project, the code, can be found under "2025-topic-03-group-02-code_final.Rmd".
 
 2. **Datasets**  
-All used datasets are stored in the folder called "datasets". It includes: 
-   a) RDeeP_HeLa_Mitosis.csv --> the initial Proteomic dataset of HeLa cells synchronized in mitosis. 
+All used datasets are stored in the folder called "datasets". It includes:  
+   a) RDeeP_HeLa_Mitosis.csv --> the initial Proteomic dataset of HeLa cells synchronized in mitosis.  
    b) RDeeP_HeLa_NS.csv --> the dataset from non-synchronized HeLa cells, used to filter out RBPs that are not mitosis-specific.
    
 3. **Reference Databases**  
-All external reference data can be found in the folder "databanks". It includes: 
-   a) uniprotkb_KW_0694_AND_model_organism_96_2025_07_04.tsv --> A list of annotated RBPs from UniProt.
+All external reference data can be found in the folder "databanks". It includes:   
+   a) uniprotkb_KW_0694_AND_model_organism_96_2025_07_04.tsv --> A list of annotated RBPs from UniProt.  
    b) corum_humanComplexes --> Known human protein complexes used to validate clustering results. 
    
 4. **Unused Code**  
