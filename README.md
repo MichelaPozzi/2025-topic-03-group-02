@@ -130,7 +130,7 @@ All of the parts that did not make it, can be found in the rmd.file called "Unus
 
 5. **Reference Paper**  
 To benchmark our clustering results, we used a publication by Hayano et al., which describes the composition of the 
-Nop56p-associated pre-rRNA processing complex in human cells. It is saved as "Paper_Nop56p".
+Nop56p-associated pre-rRNA processing complex in human cells. It is saved as "Paper_Nop56p.pdf".
    
 6. **Poster**  
 The poster to present all the findings is titled "2025-topic-03-group-02-poster.pdf" and will be presented on Thursday, July 10th, 2025.
