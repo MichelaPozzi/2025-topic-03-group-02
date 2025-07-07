@@ -523,7 +523,7 @@ RNase_norm_t3 <- MS_Table[, RNase_cols_t3] / rowSums(MS_Table[, RNase_cols_t3]) 
 # Combine in one table 
 Norm_Data_for_t <- cbind(ctrl_norm_t1, RNase_norm_t1, ctrl_norm_t2, RNase_norm_t2, ctrl_norm_t3, RNase_norm_t3)
 
-# In gewünschter Reihenfolge ordnen
+# Arrange in the preferred order
 fractions <- 1:25
 reps <- 1:3
 conditions <- c("Ctrl", "RNase") 
