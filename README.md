@@ -92,7 +92,7 @@ RNA dependency unique to mitosis.
 ### Discovery of Complexes among mitosis-specific RBPs
 To explore whether these RBPs act in shared complexes, density-based clustering 
 (DBSCAN) was performed using shift and peak features. Known complexes such as the 
-40S ribosomal subunit and the Nop56p-associated pre-rRNA complex served as validation benchmarks.
+40S ribosomal subunit and the Nop56p-associated pre-rRNA complex served as validation benchmarks (Hayano et al.,2003).
 
 **Proteins from 40S complex clustered together: 3/4**
 
@@ -112,6 +112,7 @@ elution profiles and known molecular weights showed no significant relationship.
 ## Repository 
 1. **Main Analysis Code**  
 The main part of the project, the code, can be found under "2025-topic-03-group-02-code_final.Rmd".
+> Note: The code was partially written with AI assistance using ChatGPT 4.o.
 
 2. **Datasets**  
 All used datasets are stored in the folder called "datasets". It includes:  
@@ -126,14 +127,18 @@ All external reference data can be found in the folder "databanks". It includes:
 4. **Unused Code**  
 Throughout the project, various approaches and analyses were tested. While not all made it into the final pipeline, it should not go to waste.
 All of the parts that did not make it, can be found in the rmd.file called "Unused Code Chunks".
+
+5. **Reference Paper**  
+To benchmark our clustering results, we used a publication by Hayano et al., which describes the composition of the 
+Nop56p-associated pre-rRNA processing complex in human cells. It is saved as "Paper_Nop56p".
    
-5. **Poster**  
+6. **Poster**  
 The poster to present all the findings is titled "2025-topic-03-group-02-poster.pdf" and will be presented on Thursday, July 10th, 2025.
 
-6. **This README**  
+7. **This README**  
 Not be left out, this "README.md" file is also part of the Repository. 
 
-7. **Images**  
+8. **Images**  
 As is the folder called "Images" containing all the images used in this README.
 
 
@@ -145,6 +150,7 @@ As is the folder called "Images" containing all the images used in this README.
 # 📚 References
 
 ### Reviews
+- [Hayano et al., Proteomic analysis of human Nop56p-associated pre-ribosomal ribonucleoprotein complexes. Possible link between Nop56p and the nucleolar protein treacle responsible for Treacher Collins syndrome, 2003, Journal of biological chemistry.pdf](Paper_Nop56p.pdf)
 - [Sternburg et al., Global Approaches in Studying RNA-Binding Protein Interaction Networks, 2020, Trends in Biochemical Sciences.pdf](https://github.com/user-attachments/files/19981693/Sternburg.et.al.Global.Approaches.in.Studying.RNA-Binding.Protein.Interaction.Networks.2020.Trends.in.Biochemical.Sciences.pdf)
 - [Corley et al., How RNA-Binding Proteins Interact with RNA Molecules and Mechanisms, 2020, Molecular Cell.pdf](https://github.com/user-attachments/files/19981705/Corley.et.al.How.RNA-Binding.Proteins.Interact.with.RNA.Molecules.and.Mechanisms.2020.Molecular.Cell.pdf)
 - [Gebauer et al., RNA-binding proteins in human genetic disease, 2020, Nature Reviews Genetics.pdf](https://github.com/user-attachments/files/19981707/Gebauer.et.al.RNA-binding.proteins.in.human.genetic.disease.2020.Nature.Reviews.Genetics.pdf)
