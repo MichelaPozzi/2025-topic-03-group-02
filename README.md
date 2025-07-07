@@ -111,7 +111,7 @@ elution profiles and known molecular weights showed no significant relationship.
 
 ## Repository 
 1. **Main Analysis Code**  
-The main part of the project, the code, can be found under "2025-topic-03-group-02-code_final.Rmd".
+The main part of the project, the code, can be found under "2025-topic-03-group-02-code_final.Rmd". A rendered (knitted) version is also available in the repository for easier viewing.
 > Note: The code was partially written with AI assistance using ChatGPT 4.o.
 
 2. **Datasets**  
