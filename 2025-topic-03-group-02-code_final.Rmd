@@ -1464,7 +1464,7 @@ for (r in sample_RBPs_Cluster){
 ```
 
 
-### Finding the right parameters to choose the perfect cluster size 
+### Finding the right parameters to choose the perfect cluster size - Sofia
 ###Goal: 
 Getting a good idea of how parameters affect our clustering results, by trying all combinations and creating a heat map based on the performance on a cluster. 
 
